@@ -38,7 +38,7 @@ services:
     container_name: cctv_backend
     restart: always
     ports:
-      - "8000:8000"
+      - "6801:6801"
     env_file:
       - .env
     environment:

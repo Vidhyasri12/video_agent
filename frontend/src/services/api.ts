@@ -177,5 +177,28 @@ export const api = {
   chatWithVideoAssistant: async (payload: VideoChatRequest): Promise<VideoChatResponse> => {
     const res = await axios.post(`${API_BASE}/video/chat`, payload, { timeout: 30000 });
     return res.data;
+  },
+
+  // NVIDIA VSS Settings
+  getNvidiaStatus: async (): Promise<{
+    nvidia_api_configured: boolean;
+    nvidia_key_preview: string | null;
+    model: string;
+    vss_url: string;
+    mode: string;
+    description: string;
+  }> => {
+    const res = await axios.get(`${API_BASE}/settings/status`, { timeout: 5000 });
+    return res.data;
+  },
+
+  setNvidiaKey: async (api_key: string, model?: string): Promise<{
+    status: string;
+    nvidia_api_configured: boolean;
+    model: string;
+    message: string;
+  }> => {
+    const res = await axios.post(`${API_BASE}/settings/nvidia`, { api_key, model }, { timeout: 10000 });
+    return res.data;
   }
 };

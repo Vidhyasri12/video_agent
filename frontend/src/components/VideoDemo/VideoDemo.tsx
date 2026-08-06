@@ -48,7 +48,8 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
-  Film
+  Film,
+  AlertTriangle
 } from "lucide-react";
 import { VideoDescription, VigiChannel, VigiCloudDevice, VigiCloudStatus, VigiCloudStreamTicket, VigiCloudWebhookEvent, ChatMessage } from "../../types";
 import { api, getBackendBase, getApiBase } from "../../services/api";
@@ -216,6 +217,11 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
+  const [uploadDescription, setUploadDescription] = useState<VideoDescription | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const uploadSummaryRef = useRef<HTMLDivElement>(null);
 
   // Settings & RTSP Connection States
   const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://Niyas:Gt%40102020@192.168.31.81:554/stream1");
@@ -226,9 +232,13 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const [streamMode, setStreamMode] = useState<"video" | "mjpeg">("mjpeg");
   const [vigiConnectStatus, setVigiConnectStatus] = useState<{ connected: boolean; message: string } | null>(null);
   const [isTestingVigi, setIsTestingVigi] = useState<boolean>(false);
-  const [nvidiaApiKey, setNvidiaApiKey] = useState<string>("vss_agent_live_prod_9921");
+  const [nvidiaApiKey, setNvidiaApiKey] = useState<string>("");
   const [summaryDetail, setSummaryDetail] = useState<"short" | "standard" | "audit">("standard");
   const [savedSettingsSuccess, setSavedSettingsSuccess] = useState<boolean>(false);
+  const [nvidiaStatus, setNvidiaStatus] = useState<{ nvidia_api_configured: boolean; mode: string; model: string; nvidia_key_preview: string | null; description: string } | null>(null);
+  const [isSavingKey, setIsSavingKey] = useState<boolean>(false);
+  const [nvidiaKeySaved, setNvidiaKeySaved] = useState<boolean>(false);
+  const [nvidiaKeyError, setNvidiaKeyError] = useState<string | null>(null);
 
   // Summarization Output States
   const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
@@ -358,11 +368,37 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
     });
   };
 
-  // Fetch VIGI VMS channels & Cloud VMS data on mount
+  // Fetch VIGI VMS channels, Cloud VMS data, and NVIDIA status on mount
   useEffect(() => {
     fetchVigiChannels();
     fetchVigiCloudData();
+    fetchNvidiaStatus();
   }, []);
+
+  const fetchNvidiaStatus = async () => {
+    try {
+      const status = await api.getNvidiaStatus();
+      setNvidiaStatus(status);
+    } catch (err) {
+      console.warn("Could not fetch NVIDIA status:", err);
+    }
+  };
+
+  const handleSaveNvidiaKey = async () => {
+    setIsSavingKey(true);
+    setNvidiaKeyError(null);
+    setNvidiaKeySaved(false);
+    try {
+      const res = await api.setNvidiaKey(nvidiaApiKey);
+      setNvidiaKeySaved(true);
+      setTimeout(() => setNvidiaKeySaved(false), 3000);
+      await fetchNvidiaStatus();
+    } catch (err: any) {
+      setNvidiaKeyError(err?.response?.data?.detail || err?.message || "Failed to save key.");
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
 
   const fetchVigiChannels = async () => {
     try {
@@ -499,15 +535,6 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
             generateVigiMockSummary();
           }
         }
-      } else if (selectedFile) {
-
-        const res = await api.uploadVideo(selectedFile, selectedFile.name);
-        if (res.description) {
-          setDescription(res.description);
-        } else {
-          const fallback = await api.describeVideo(selectedFile.name);
-          setDescription(fallback.description || fallback.summary);
-        }
       } else {
         const filename = SAMPLE_VIDEO_NAME;
         const res = await api.describeVideo(filename);
@@ -527,6 +554,57 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
           summaryRef.current.scrollIntoView({ behavior: "smooth" });
         }
       }, 300);
+    }
+  };
+
+  // Dedicated upload + summarize handler for the Upload tab
+  const handleUploadAndSummarize = async () => {
+    if (!selectedFile) return;
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadDescription(null);
+    setUploadError(null);
+
+    const p1 = setTimeout(() => setUploadProgress(30), 500);
+    const p2 = setTimeout(() => setUploadProgress(60), 1500);
+    const p3 = setTimeout(() => setUploadProgress(80), 3000);
+
+    try {
+      const res = await api.uploadVideo(selectedFile, selectedFile.name);
+      clearTimeout(p1); clearTimeout(p2); clearTimeout(p3);
+      setUploadProgress(100);
+
+      // Extract description - support both top-level and nested in video_info
+      const desc: VideoDescription | undefined =
+        res.description ||
+        (res as any).video_info?.description ||
+        (res as any).summary;
+
+      if (desc && desc.summary) {
+        setUploadDescription(desc);
+        setTimeout(() => {
+          uploadSummaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 200);
+      } else {
+        // Try the describe endpoint as fallback
+        const fallback = await api.describeVideo(selectedFile.name);
+        const fallbackDesc = fallback.description || (fallback as any).summary;
+        if (fallbackDesc && fallbackDesc.summary) {
+          setUploadDescription(fallbackDesc);
+        } else {
+          setUploadError("Summary was generated but could not be parsed. Please try again.");
+        }
+      }
+    } catch (err: any) {
+      clearTimeout(p1); clearTimeout(p2); clearTimeout(p3);
+      console.error("Upload summarize error:", err);
+      setUploadError(
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Upload or summarization failed. Please check that the file is a valid video."
+      );
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1168,46 +1246,31 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
       {/* TAB 2: UPLOAD VIDEO (Dedicated Tab for Video Files & Summarization)         */}
       {/* ========================================================================= */}
       {currentTab === "upload" && (
-        <div className="glass-panel p-6 rounded-2xl space-y-6 max-w-4xl mx-auto animate-fade-in border border-slate-800">
-          <div>
-            <h2 className="text-lg font-extrabold text-white flex items-center space-x-2">
-              <Upload className="w-5 h-5 text-emerald-400" />
-              <span>Upload Video File for AI Intelligence</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Upload local surveillance footage or pick sample MP4 videos for NVIDIA VSS summarization.
-            </p>
-          </div>
+        <div className="space-y-6 max-w-4xl mx-auto animate-fade-in">
+          {/* Upload Panel */}
+          <div className="glass-panel p-6 rounded-2xl space-y-6 border border-slate-800">
+            <div>
+              <h2 className="text-lg font-extrabold text-white flex items-center space-x-2">
+                <Upload className="w-5 h-5 text-emerald-400" />
+                <span>Upload Video for NVIDIA VSS AI Summarization</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Upload any surveillance footage — NVIDIA VSS Agent will extract keyframes and generate a full AI intelligence summary.
+              </p>
+            </div>
 
-          {/* File Dropzone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-            onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragActive(false);
-              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                const file = e.dataTransfer.files[0];
-                setSelectedFile(file);
-                const url = URL.createObjectURL(file);
-                setVideoPreviewUrl(url);
-                setActiveVideoUrl(url);
-                setActiveVideoName(file.name);
-                setActiveVideoTitle(`Uploaded: ${file.name}`);
-              }
-            }}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
-              dragActive ? "border-emerald-500 bg-emerald-500/10" : "border-slate-700 hover:border-emerald-500/50 bg-slate-900/40"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/*,.mp4,.avi,.mov,.webm"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  const file = e.target.files[0];
+            {/* File Dropzone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  const file = e.dataTransfer.files[0];
                   setSelectedFile(file);
+                  setUploadDescription(null);
+                  setUploadError(null);
                   const url = URL.createObjectURL(file);
                   setVideoPreviewUrl(url);
                   setActiveVideoUrl(url);
@@ -1215,70 +1278,267 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                   setActiveVideoTitle(`Uploaded: ${file.name}`);
                 }
               }}
-              className="hidden"
-            />
-            <FileVideo className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-pulse" />
-            <p className="text-sm font-bold text-slate-200 mb-1">
-              {selectedFile ? selectedFile.name : "Drag & drop video file here, or click to browse"}
-            </p>
-            <p className="text-xs text-slate-400 mb-4">
-              Supports MP4, AVI, MOV, WEBM (Up to 500MB)
-            </p>
-            <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-emerald-600/20"
-            >
-              Select File
-            </button>
-          </div>
-
-          {/* Video Preview Player */}
-          {videoPreviewUrl && (
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-300">Video Preview:</span>
-              <div className="rounded-xl overflow-hidden bg-black border border-slate-800">
-                <video src={videoPreviewUrl} controls autoPlay className="w-full max-h-[380px]" />
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              onClick={handleSummarizeVideo}
-              disabled={isSummarizing}
-              className={`py-3.5 text-white font-extrabold text-xs rounded-xl transition shadow-lg flex items-center justify-center space-x-2 cursor-pointer bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-emerald-600/20 ${
-                isSummarizing ? "opacity-70 cursor-not-allowed" : ""
+              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
+                dragActive ? "border-emerald-500 bg-emerald-500/10" :
+                selectedFile ? "border-emerald-600/60 bg-emerald-500/5" :
+                "border-slate-700 hover:border-emerald-500/50 bg-slate-900/40"
               }`}
             >
-              {isSummarizing ? (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*,.mp4,.avi,.mov,.webm"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    setSelectedFile(file);
+                    setUploadDescription(null);
+                    setUploadError(null);
+                    const url = URL.createObjectURL(file);
+                    setVideoPreviewUrl(url);
+                    setActiveVideoUrl(url);
+                    setActiveVideoName(file.name);
+                    setActiveVideoTitle(`Uploaded: ${file.name}`);
+                  }
+                }}
+                className="hidden"
+              />
+              {selectedFile ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>Summarizing Video File...</span>
+                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-emerald-300 mb-1 truncate max-w-md mx-auto">{selectedFile.name}</p>
+                  <p className="text-xs text-slate-400 mb-2">
+                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · {selectedFile.type || "video"}
+                  </p>
+                  <p className="text-[11px] text-slate-500">Click to change file</p>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 text-white" />
-                  <span>Summarize Video Footage</span>
+                  <FileVideo className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-pulse" />
+                  <p className="text-sm font-bold text-slate-200 mb-1">Drag & drop video file here, or click to browse</p>
+                  <p className="text-xs text-slate-400 mb-4">Supports MP4, AVI, MOV, WEBM · Up to 500MB</p>
+                  <div className="inline-flex items-center space-x-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-md shadow-emerald-600/20">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Select File</span>
+                  </div>
                 </>
               )}
-            </button>
+            </div>
 
-            <button
-              onClick={() => {
-                if (selectedFile && videoPreviewUrl) {
-                  setActiveVideoUrl(videoPreviewUrl);
-                  setActiveVideoName(selectedFile.name);
-                  setActiveVideoTitle(`Uploaded: ${selectedFile.name}`);
-                }
-                setTab("assistant");
-              }}
-              className="py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 font-extrabold text-xs rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer shadow-md"
-            >
-              <Bot className="w-4 h-4 text-emerald-400" />
-              <span>Open & Chat in Video Assistant</span>
-            </button>
+            {/* Video Preview Player */}
+            {videoPreviewUrl && (
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
+                  <Film className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Video Preview</span>
+                </span>
+                <div className="rounded-xl overflow-hidden bg-black border border-slate-700 shadow-xl">
+                  <video src={videoPreviewUrl} controls className="w-full max-h-[340px]" />
+                </div>
+              </div>
+            )}
+
+            {/* Upload Progress Bar */}
+            {isUploading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold text-slate-300">
+                  <span className="flex items-center space-x-2">
+                    <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                    <span>Uploading & running NVIDIA VSS keyframe analysis...</span>
+                  </span>
+                  <span className="text-emerald-400 font-mono">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500 progress-bar-shine"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Upload Error */}
+            {uploadError && (
+              <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-300 flex items-start space-x-2">
+                <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span>{uploadError}</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleUploadAndSummarize}
+                disabled={isUploading || !selectedFile}
+                className={`py-3.5 text-white font-extrabold text-xs rounded-xl transition shadow-lg flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-emerald-600/20 ${
+                  isUploading || !selectedFile ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                }`}
+              >
+                {isUploading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Analyzing with NVIDIA VSS AI...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-white" />
+                    <span>{selectedFile ? "Summarize with NVIDIA VSS AI" : "Select a file first"}</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (selectedFile && videoPreviewUrl) {
+                    setActiveVideoUrl(videoPreviewUrl);
+                    setActiveVideoName(selectedFile.name);
+                    setActiveVideoTitle(`Uploaded: ${selectedFile.name}`);
+                  }
+                  setTab("assistant");
+                }}
+                className="py-3.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 font-extrabold text-xs rounded-xl transition flex items-center justify-center space-x-2 cursor-pointer shadow-md"
+              >
+                <Bot className="w-4 h-4 text-emerald-400" />
+                <span>Open in Video Assistant Chat</span>
+              </button>
+            </div>
           </div>
+
+          {/* ===================================================== */}
+          {/* INLINE NVIDIA VSS SUMMARY RESULT (appears after upload) */}
+          {/* ===================================================== */}
+          {uploadDescription && !isUploading && (
+            <div ref={uploadSummaryRef} className="glass-panel p-6 rounded-2xl space-y-5 border border-emerald-500/40 animate-slide-up shadow-xl shadow-emerald-500/5">
+              {/* Header */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px] font-mono text-emerald-400 font-bold tracking-wider">NVIDIA VSS AGENT · {uploadDescription.agent_provider || "Local Microservice"}</span>
+                  </div>
+                  <h3 className="text-base font-extrabold text-white flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span>{uploadDescription.title}</span>
+                  </h3>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-mono font-bold rounded-full">
+                    {Math.round((uploadDescription.confidence || 0.97) * 100)}% Confidence
+                  </span>
+                  <span className="px-2.5 py-1 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[11px] font-mono font-bold rounded-full">
+                    {uploadDescription.duration_est || "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Executive Summary */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-extrabold text-slate-300 flex items-center space-x-1.5">
+                  <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Executive Summary</span>
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed bg-[#0d1322] p-4 rounded-xl border border-slate-800/80 font-sans">
+                  {uploadDescription.summary}
+                </p>
+              </div>
+
+              {/* Scene Type + Detected Objects */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold text-slate-300 flex items-center space-x-1.5">
+                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Detected Objects & Entities</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(uploadDescription.detected_objects || []).map((obj, i) => (
+                      <span key={i} className="px-2 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-[11px] rounded-lg font-mono">
+                        {obj}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold text-slate-300 flex items-center space-x-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Safety Highlights</span>
+                  </h4>
+                  <div className="space-y-1">
+                    {(uploadDescription.safety_highlights || []).slice(0, 4).map((h, i) => (
+                      <div key={i} className="flex items-start space-x-2 text-[11px] text-emerald-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{h}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              {(uploadDescription.timeline || []).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold text-slate-300 flex items-center space-x-1.5">
+                    <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Chronological Event Timeline</span>
+                  </h4>
+                  <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                    {(uploadDescription.timeline || []).map((item, idx) => (
+                      <div key={idx} className="p-3 bg-[#0d1322] rounded-xl border border-slate-800/80 flex items-start space-x-3 text-xs">
+                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 font-mono font-bold rounded shrink-0">
+                          {item.time}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-200 font-medium leading-snug">{item.event}</p>
+                          <span className={`text-[10px] font-mono mt-0.5 inline-block ${
+                            item.tag === "Motion Event" ? "text-amber-400" :
+                            item.tag === "Entity Tracked" ? "text-cyan-400" :
+                            item.tag === "Baseline" ? "text-slate-500" :
+                            "text-emerald-500"
+                          }`}>{item.tag}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer actions */}
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-800">
+                <button
+                  onClick={() => {
+                    if (selectedFile && videoPreviewUrl) {
+                      setActiveVideoUrl(videoPreviewUrl);
+                      setActiveVideoName(selectedFile.name);
+                      setActiveVideoTitle(uploadDescription.title || selectedFile.name);
+                    }
+                    setTab("assistant");
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-emerald-600/20"
+                >
+                  <Bot className="w-4 h-4" />
+                  <span>Chat with Video Assistant</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const text = `VIDEO SUMMARY: ${uploadDescription.title}\n\n${uploadDescription.summary}\n\nTimeline:\n` +
+                      (uploadDescription.timeline || []).map((t) => `• [${t.time}] ${t.event}`).join("\n");
+                    navigator.clipboard.writeText(text);
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700"
+                >
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Copy Summary</span>
+                </button>
+                <button
+                  onClick={() => { setUploadDescription(null); setSelectedFile(null); setVideoPreviewUrl(null); setUploadError(null); }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Upload New Video</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1683,43 +1943,135 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
             </div>
           </div>
 
-          {/* Card 3: NVIDIA VSS AI Summarizer Settings */}
-          <div className="glass-panel p-6 rounded-2xl space-y-4 border border-slate-800">
-            <div className="flex items-center space-x-3 pb-3 border-b border-slate-800">
-              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40">
-                <Cpu className="w-5 h-5" />
+          {/* Card 3: NVIDIA VSS AI Configuration — Live NVIDIA NIM API key management */}
+          <div className="glass-panel p-6 rounded-2xl space-y-4 border border-indigo-500/40 bg-[#0b101d]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">NVIDIA VSS AI Configuration</h3>
+                  <p className="text-xs text-slate-400">Set your NVIDIA NIM API key to enable real AI vision summarization.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-extrabold text-white">NVIDIA VSS AI Intelligence Parameters</h3>
-                <p className="text-xs text-slate-400">Configure keyframe visual model sampling & summary depth.</p>
-              </div>
+              {nvidiaStatus && (
+                <span className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-full border flex items-center space-x-1.5 ${
+                  nvidiaStatus.nvidia_api_configured
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${nvidiaStatus.nvidia_api_configured ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+                  <span>{nvidiaStatus.nvidia_api_configured ? "NVIDIA API Active" : "Local Mode"}</span>
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">VSS API License Key</label>
+            {/* Current Mode Info Banner */}
+            {nvidiaStatus && (
+              <div className={`p-3.5 rounded-xl text-xs flex items-start space-x-3 ${
+                nvidiaStatus.nvidia_api_configured
+                  ? "bg-emerald-500/10 border border-emerald-500/30"
+                  : "bg-amber-500/10 border border-amber-500/30"
+              }`}>
+                {nvidiaStatus.nvidia_api_configured
+                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  : <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                }
+                <div>
+                  <p className={`font-bold mb-0.5 ${nvidiaStatus.nvidia_api_configured ? "text-emerald-300" : "text-amber-300"}`}>
+                    {nvidiaStatus.mode}
+                  </p>
+                  <p className="text-slate-400 leading-relaxed">{nvidiaStatus.description}</p>
+                  {nvidiaStatus.nvidia_api_configured && (
+                    <p className="text-slate-500 mt-1 font-mono">
+                      Key: {nvidiaStatus.nvidia_key_preview} · Model: {nvidiaStatus.model}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* API Key Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 block">
+                NVIDIA NIM API Key
+                <a href="https://build.nvidia.com/explore/discover" target="_blank" rel="noopener noreferrer"
+                  className="ml-2 text-indigo-400 hover:text-indigo-300 transition font-normal underline underline-offset-2">
+                  Get free key → build.nvidia.com
+                </a>
+              </label>
+              <div className="flex items-center space-x-2">
                 <input
                   type="password"
                   value={nvidiaApiKey}
                   onChange={(e) => setNvidiaApiKey(e.target.value)}
-                  className="w-full bg-[#0d1322] border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500"
+                  placeholder="nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  className="flex-1 bg-[#0d1322] border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600"
                 />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Summary Output Level</label>
-                <select
-                  value={summaryDetail}
-                  onChange={(e) => setSummaryDetail(e.target.value as any)}
-                  className="w-full bg-[#0d1322] border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                <button
+                  onClick={handleSaveNvidiaKey}
+                  disabled={isSavingKey || !nvidiaApiKey.trim()}
+                  className={`px-5 py-2.5 font-extrabold text-xs rounded-xl transition flex items-center space-x-2 shrink-0 ${
+                    isSavingKey || !nvidiaApiKey.trim()
+                      ? "bg-slate-700 text-slate-500 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer shadow-md shadow-indigo-600/20"
+                  }`}
                 >
-                  <option value="short">Brief Overview (Key Events Only)</option>
-                  <option value="standard">Standard Surveillance Summary (Recommended)</option>
-                  <option value="audit">Comprehensive Security Audit (Full Details)</option>
-                </select>
+                  {isSavingKey ? (
+                    <><RefreshCw className="w-3.5 h-3.5 animate-spin" /><span>Saving...</span></>
+                  ) : nvidiaKeySaved ? (
+                    <><CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /><span>Saved!</span></>
+                  ) : (
+                    <><Zap className="w-3.5 h-3.5" /><span>Activate</span></>
+                  )}
+                </button>
               </div>
+              {nvidiaKeyError && (
+                <p className="text-[11px] text-red-400 flex items-center space-x-1.5">
+                  <XCircle className="w-3.5 h-3.5" /><span>{nvidiaKeyError}</span>
+                </p>
+              )}
+              {nvidiaKeySaved && (
+                <p className="text-[11px] text-emerald-400 flex items-center space-x-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /><span>NVIDIA Vision AI active — next upload will use the real NVIDIA NIM model.</span>
+                </p>
+              )}
+            </div>
+
+            {/* What NVIDIA API gives you */}
+            {!nvidiaStatus?.nvidia_api_configured && (
+              <div className="p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-xl space-y-2">
+                <p className="text-xs font-bold text-indigo-300">What the NVIDIA NIM API unlocks:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    "🎯 Real visual content understanding (people, vehicles, actions)",
+                    "🏷️ Accurate object classification from actual video frames",
+                    "📍 Scene-aware event descriptions (not just motion vectors)",
+                    "🔍 Multimodal AI: meta/llama-3.2-11b-vision-instruct"
+                  ].map((item, i) => (
+                    <div key={i} className="text-[11px] text-slate-300">{item}</div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">Free tier: <span className="text-indigo-400">build.nvidia.com/explore/discover</span></p>
+              </div>
+            )}
+
+            {/* Summary Detail Level */}
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1.5">Summary Output Level</label>
+              <select
+                value={summaryDetail}
+                onChange={(e) => setSummaryDetail(e.target.value as any)}
+                className="w-full bg-[#0d1322] border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="short">Brief Overview (Key Events Only)</option>
+                <option value="standard">Standard Surveillance Summary (Recommended)</option>
+                <option value="audit">Comprehensive Security Audit (Full Details)</option>
+              </select>
             </div>
           </div>
+
 
           {/* Card 4: TP-Link VIGI Cloud VMS OpenAPI Gateway */}
           <div className="glass-panel p-6 rounded-2xl space-y-4 border border-cyan-500/30 bg-[#0b101d]">

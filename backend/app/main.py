@@ -70,3 +70,8 @@ async def root():
     }
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", settings.PORT))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)

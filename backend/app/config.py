@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AI CCTV Video Intelligence & Summarization System"
     API_V1_STR: str = "/api/v1"
+    PORT: int = 8000
     SECRET_KEY: str = "super-secret-jwt-key-change-in-production"
     ENVIRONMENT: str = "production"
 

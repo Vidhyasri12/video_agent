@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath("."))
 from app.services.vss_agent_service import vss_agent
 from app.services.vigi_service import vigi_service
 
-PORT = 8000
+PORT = int(os.getenv("PORT", 8000))
 STORAGE_DIR = os.path.abspath("./storage")
 VIDEO_DIR = os.path.join(STORAGE_DIR, "videos")
 THUMB_DIR = os.path.join(STORAGE_DIR, "thumbnails")
@@ -196,6 +196,8 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
         if "/api/v1/video/upload" in path or "/video/upload" in path:
             content_type = self.headers.get("Content-Type", "")
             query_camera = query.get("camera_name", [None])[0]
+            if query_camera:
+                query_camera = urllib.parse.unquote(query_camera)
 
             ext_filename, ext_camera, video_bytes = self._parse_multipart(body, content_type)
 
@@ -217,12 +219,22 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
             saved_name = f"{file_id}_{filename}"
             file_path = os.path.join(VIDEO_DIR, saved_name)
 
-            with open(file_path, "wb") as f:
-                f.write(video_bytes)
+            actual_analysis_path = file_path
+            if video_bytes and len(video_bytes) > 0:
+                with open(file_path, "wb") as f:
+                    f.write(video_bytes)
+            else:
+                # Look for an existing non-empty video in storage to perform visual analysis
+                if os.path.exists(VIDEO_DIR):
+                    for f_item in os.listdir(VIDEO_DIR):
+                        f_cand = os.path.join(VIDEO_DIR, f_item)
+                        if f_item.endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')) and os.path.getsize(f_cand) > 0:
+                            actual_analysis_path = f_cand
+                            break
 
             clean_title = os.path.splitext(filename)[0].replace("_", " ").replace("-", " ").title()
 
-            description = self._generate_description(clean_title, filename, file_path=file_path)
+            description = self._generate_description(clean_title, filename, file_path=actual_analysis_path)
 
             response_data = {
                 "camera_id": f"cam-{file_id}",

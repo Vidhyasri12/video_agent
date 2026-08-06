@@ -53,7 +53,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Access the application at: [http://localhost:3000](http://localhost:3000)
+Access the application at: [http://localhost:6801](http://localhost:6801)
 
 ---
 

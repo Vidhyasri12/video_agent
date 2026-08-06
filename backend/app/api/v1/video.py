@@ -20,7 +20,10 @@ async def upload_video(
     camera_name_form: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None)
 ):
+    import urllib.parse
     eff_camera_name = camera_name or camera_name_form or "Uploaded Feed"
+    if eff_camera_name:
+        eff_camera_name = urllib.parse.unquote(eff_camera_name)
     
     file_name = None
     content = b""
