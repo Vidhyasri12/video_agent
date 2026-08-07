@@ -59,6 +59,7 @@ class VSSAgentService:
         Extracts metadata and max_frames keyframes spaced evenly across video duration.
         """
         if not os.path.isfile(video_path) or os.path.getsize(video_path) == 0:
+            bname = os.path.basename(video_path).lower()
             candidates = [
                 video_path,
                 os.path.join("./storage/videos", os.path.basename(video_path)),
@@ -72,9 +73,20 @@ class VSSAgentService:
             else:
                 for search_dir in ["./storage/videos", "../storage/videos", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "storage", "videos"))]:
                     if os.path.isdir(search_dir):
-                        v_files = [os.path.join(search_dir, f) for f in os.listdir(search_dir) if f.endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')) and os.path.getsize(os.path.join(search_dir, f)) > 0]
+                        v_files = [
+                            os.path.join(search_dir, f) for f in os.listdir(search_dir)
+                            if f.endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')) and os.path.getsize(os.path.join(search_dir, f)) > 0
+                        ]
                         if v_files:
-                            video_path = v_files[0]
+                            # 1. Try matching files containing or ending with bname
+                            matched = [f for f in v_files if bname in os.path.basename(f).lower() or os.path.basename(f).lower().endswith(bname)]
+                            if matched:
+                                matched.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                                video_path = matched[0]
+                            else:
+                                # 2. Pick the most recently modified/uploaded file
+                                v_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                                video_path = v_files[0]
                             break
 
         if cv2 is None or not os.path.isfile(video_path) or os.path.getsize(video_path) == 0:

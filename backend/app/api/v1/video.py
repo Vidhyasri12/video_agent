@@ -146,3 +146,10 @@ async def chat_with_video(payload: VideoChatRequest):
         "safety_highlights": highlights
     }
 
+@router.post("/clear-db")
+@router.delete("/clear-db")
+async def clear_database_endpoint():
+    result = await video_service.clear_db_and_storage()
+    return result
+
+

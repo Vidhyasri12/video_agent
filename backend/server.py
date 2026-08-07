@@ -37,6 +37,30 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
 
+    def do_DELETE(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        if "/api/v1/video/clear-db" in path or "/video/clear-db" in path:
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            res = loop.run_until_complete(vss_agent.clear_db_and_storage() if hasattr(vss_agent, 'clear_db_and_storage') else video_service.clear_db_and_storage())
+            self.send_response(200)
+            self._set_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+            return
+
+        self.send_response(404)
+        self._set_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"detail": "Not Found"}).encode("utf-8"))
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -192,6 +216,22 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
 
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length) if content_length > 0 else b""
+
+        if "/api/v1/video/clear-db" in path or "/video/clear-db" in path:
+            import asyncio
+            from app.services.video_service import video_service
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            res = loop.run_until_complete(video_service.clear_db_and_storage())
+            self.send_response(200)
+            self._set_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+            return
 
         if "/api/v1/video/upload" in path or "/video/upload" in path:
             content_type = self.headers.get("Content-Type", "")

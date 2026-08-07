@@ -51,6 +51,14 @@ export const api = {
     return res.data;
   },
 
+  clearDatabase: async (): Promise<{ status: string; db_cleared: boolean; message: string }> => {
+    const res = await axios.post(`${API_BASE}/video/clear-db`, {}, {
+      timeout: 10000
+    });
+    return res.data;
+  },
+
+
   // Capability & Health Endpoints
   getVigiCapabilities: async (provider?: string): Promise<VigiCapabilities> => {
     const url = provider ? `${API_BASE}/vigi/capabilities?provider=${encodeURIComponent(provider)}` : `${API_BASE}/vigi/capabilities`;

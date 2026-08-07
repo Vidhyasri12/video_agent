@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { VideoDemo } from "./components/VideoDemo/VideoDemo";
-import { Tv, Upload, Bot, Settings, ShieldCheck, Activity } from "lucide-react";
+import { Tv, Upload, Settings, Activity } from "lucide-react";
 
-export type AppTab = "camera" | "upload" | "assistant" | "settings";
+export type AppTab = "camera" | "upload" | "settings";
 
 export function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("camera");
@@ -60,18 +60,6 @@ export function App() {
             >
               <Upload className="w-4 h-4 text-emerald-300" />
               <span>Upload Video</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("assistant")}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "assistant"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30 font-extrabold"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-              }`}
-            >
-              <Bot className="w-4 h-4 text-emerald-300" />
-              <span>Video Assistant</span>
             </button>
 
             <button
