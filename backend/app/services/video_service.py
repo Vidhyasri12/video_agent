@@ -168,6 +168,48 @@ class VideoService:
             "message": "Database tables (summaries, captions, events, alerts, cameras) and memory buffers cleared successfully."
         }
 
+    def chat_with_video(self, file_name: str, question: str) -> Dict[str, Any]:
+        """
+        Resolves video file path and queries VSS agent chat function with timing check support.
+        """
+        target_path = ""
+        # 1. Check file registry
+        if file_name in self._file_registry and os.path.exists(self._file_registry[file_name]):
+            target_path = self._file_registry[file_name]
+
+        # 2. Check candidate standard paths
+        if not target_path or not os.path.exists(target_path):
+            candidates = [
+                os.path.join(self.video_dir, file_name),
+                os.path.join("../storage/videos", file_name),
+                os.path.join("./storage/videos", file_name),
+                os.path.abspath(os.path.join("storage", "videos", file_name)),
+                os.path.abspath(os.path.join("..", "storage", "videos", file_name))
+            ]
+            for cand in candidates:
+                if os.path.exists(cand) and os.path.getsize(cand) > 0:
+                    target_path = cand
+                    break
+
+        # 3. Match by filename substring or pick most recent
+        if not target_path or not os.path.exists(target_path):
+            if os.path.isdir(self.video_dir):
+                bname = os.path.basename(file_name).lower()
+                all_vids = [
+                    os.path.join(self.video_dir, f) for f in os.listdir(self.video_dir)
+                    if f.endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')) and os.path.getsize(os.path.join(self.video_dir, f)) > 0
+                ]
+                if all_vids:
+                    matched = [v for v in all_vids if bname in os.path.basename(v).lower() or os.path.basename(v).lower().endswith(bname)]
+                    if matched:
+                        matched.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                        target_path = matched[0]
+                    else:
+                        all_vids.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                        target_path = all_vids[0]
+
+        return vss_agent.chat_video(target_path or file_name, file_name, question)
+
     def get_stream_metadata(self, camera_id: str, rtsp_url: Optional[str]) -> Dict[str, Any]:
         return {
             "camera_id": camera_id,

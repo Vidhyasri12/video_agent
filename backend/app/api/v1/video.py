@@ -84,66 +84,49 @@ async def describe_video(
 async def chat_with_video(payload: VideoChatRequest):
     target_filename = payload.filename or "Sample_Traffic_Surveillance.mp4"
     question = payload.question.strip()
-    q_lower = question.lower()
 
-    description_data = video_service.generate_video_description(target_filename)
-    title = payload.video_title or description_data.get("title", f"Video Stream ({target_filename})")
-    summary = description_data.get("summary", "")
-    scene_type = description_data.get("scene_type", "Surveillance Footage")
-    timeline = description_data.get("timeline", [])
-    objects = description_data.get("detected_objects", [])
-    highlights = description_data.get("safety_highlights", [])
+    # Query video service with timing check capabilities
+    chat_res = video_service.chat_with_video(target_filename, question)
 
-    # Format timestamp highlights for the chat response
-    timeline_str = "\n".join([f"• [{item.get('time', '00:00')}] {item.get('event', '')}" for item in timeline])
-    objects_str = ", ".join(objects) if objects else "Standard surveillance elements"
-    highlights_str = "\n".join([f"✓ {h}" for h in highlights])
+    filename = chat_res.get("filename", target_filename)
+    scope = chat_res.get("scope", "")
+    raw_answer = chat_res.get("answer", "")
+    summary = chat_res.get("summary", "")
+    timeline = chat_res.get("timeline", [])
+    objects = chat_res.get("detected_objects", [])
+    highlights = chat_res.get("safety_highlights", [])
+    agent_provider = chat_res.get("agent_provider", "NVIDIA VSS Agent")
 
-    if any(k in q_lower for k in ["summary", "summarise", "overview", "what is this video", "describe", "explain"]):
-        answer = (
-            f"### 📹 Video Executive Summary: {title}\n\n"
-            f"{summary}\n\n"
-            f"**Scene Type:** {scene_type}\n\n"
-            f"#### ⏱️ Chronological Timeline:\n{timeline_str}\n\n"
-            f"#### 🔍 Key Observations:\n{highlights_str}"
-        )
-    elif any(k in q_lower for k in ["timeline", "time", "event", "when", "happened", "timestamp"]):
-        answer = (
-            f"### ⏱️ Timestamped Event Timeline for '{title}'\n\n"
-            f"Here is the breakdown of recorded events across the video playback:\n\n"
-            f"{timeline_str}\n\n"
-            f"*Tip: Click on any timestamp to seek directly in the video player!*"
-        )
-    elif any(k in q_lower for k in ["object", "people", "person", "vehicle", "car", "truck", "item", "detect"]):
-        answer = (
-            f"### 🔍 Object & Entity Analytics for '{title}'\n\n"
-            f"Visual keyframe analysis detected the following elements in this video feed:\n"
-            f"• **Detected Entities:** {objects_str}\n\n"
-            f"**Security Assessment:** Scene activity verified as standard protocol. Zero unauthorized intrusions recorded."
-        )
-    elif any(k in q_lower for k in ["safety", "security", "alert", "incident", "breach", "anomaly", "risk"]):
-        answer = (
-            f"### 🛡️ Safety & Security Audit Report\n\n"
-            f"{highlights_str}\n\n"
-            f"**Confidence Level:** 98.5% (NVIDIA VSS Visual Engine)\n"
-            f"**Status:** All monitored zones operating within compliance parameters."
-        )
+    timeline_str = "\n".join([f"• [{item.get('time', '00:00')}] {item.get('event', '')}" for item in timeline]) if timeline else "• [00:00 - End] Video feed monitored continuously."
+    objects_str = ", ".join(objects) if objects else "Standard visual elements"
+    highlights_str = "\n".join([f"✓ {h}" for h in highlights]) if highlights else "✓ Protocol compliance verified across monitored feed."
+
+    # Construct clean answer text with timing check header if scoped
+    scope_header = f"**⏱️ Evaluated Window:** `{scope}`\n\n" if scope and scope != "Full video" else ""
+    
+    if raw_answer:
+        answer = f"{scope_header}{raw_answer}\n\n#### ⏱️ Timeline Highlights:\n{timeline_str}"
     else:
         answer = (
-            f"Based on visual analysis of **{title}** ({scene_type}):\n\n"
+            f"### 📹 Video AI Assistant ({payload.video_title or filename})\n\n"
+            f"{scope_header}"
             f"{summary}\n\n"
-            f"**Key Highlights:**\n{highlights_str}\n\n"
-            f"Feel free to ask for a specific timeline breakdown, detected objects, or safety audit!"
+            f"**Detected Entities:** {objects_str}\n\n"
+            f"#### ⏱️ Chronological Timeline:\n{timeline_str}\n\n"
+            f"#### 🔍 Safety & Operational Audit:\n{highlights_str}"
         )
 
     return {
         "status": "success",
-        "filename": target_filename,
+        "filename": filename,
         "question": question,
         "answer": answer,
+        "scope": scope,
+        "summary": summary,
         "timeline": timeline,
         "detected_objects": objects,
-        "safety_highlights": highlights
+        "safety_highlights": highlights,
+        "agent_provider": agent_provider
     }
 
 @router.post("/clear-db")

@@ -572,20 +572,20 @@ class VSSAgentService:
         Scan *question* for time-range hints and return (start_sec, end_sec) or None.
 
         Patterns supported (case-insensitive):
-          - "from 1:00 to 2:30"  /  "from 60 to 150"
+          - "from 1:00 to 2:30"  /  "from 60 to 150" / "10s to 20s"
           - "between 1:00 and 2:30"
-          - "at 1:30"  (→ ±15 s window)
+          - "at 1:30" / "at 15 seconds" / "around 00:10" / "timestamp 0:15" / "at 10s"
           - "first 30 seconds" / "first 2 minutes"
           - "last 30 seconds"  / "last 2 minutes"
-          - "0:00 to 1:00" (bare range)
-          - "0:00 - 1:00" (dash range)
+          - "0:00 to 1:00" (bare range) / "0:00 - 1:00" (dash range)
+          - standalone MM:SS timestamps like "00:15"
         """
         q = question.lower()
 
         # Helper: parse a single time token that may be "MM:SS" or "N seconds/minutes"
-        ts_pat = r"(\d+:\d+(?::\d+)?|\d+(?:\.\d+)?)"
+        ts_pat = r"(\d+:\d+(?::\d+)?|\d+(?:\.\d+)?)(?:\s*(?:s|sec|seconds|min|minutes))?"
 
-        # 1. "from X to Y" / "between X and Y"
+        # 1. "from X to Y" / "between X and Y" / "X to Y" / "X - Y"
         for pat in [
             rf"from\s+{ts_pat}\s+to\s+{ts_pat}",
             rf"between\s+{ts_pat}\s+and\s+{ts_pat}",
@@ -599,15 +599,20 @@ class VSSAgentService:
                 if s is not None and e is not None and e > s:
                     return (max(0.0, s), min(duration, e))
 
-        # 2. "at X:XX" → ±15 second window
-        m = re.search(rf"at\s+{ts_pat}", q)
-        if m:
-            center = self._parse_time_to_seconds(m.group(1))
-            if center is not None:
-                return (max(0.0, center - 15), min(duration, center + 15))
+        # 2. "at X" / "around X" / "timestamp X" / "at time X" → ±10 second window
+        for pat in [
+            rf"(?:at|around|timestamp|time|near)\s+(?:mark\s+)?{ts_pat}",
+            rf"{ts_pat}\s*(?:mark|point)",
+        ]:
+            m = re.search(pat, q)
+            if m:
+                center = self._parse_time_to_seconds(m.group(1))
+                if center is not None:
+                    window = 10.0 if duration > 20 else 5.0
+                    return (max(0.0, center - window), min(duration, center + window))
 
         # 3. "first N seconds/minutes"
-        m = re.search(r"first\s+(\d+(?:\.\d+)?)\s*(second|seconds|sec|minute|minutes|min)", q)
+        m = re.search(r"first\s+(\d+(?:\.\d+)?)\s*(second|seconds|sec|s|minute|minutes|min|m)", q)
         if m:
             n = float(m.group(1))
             unit = m.group(2)
@@ -615,17 +620,25 @@ class VSSAgentService:
             return (0.0, min(duration, secs))
 
         # 4. "last N seconds/minutes"
-        m = re.search(r"last\s+(\d+(?:\.\d+)?)\s*(second|seconds|sec|minute|minutes|min)", q)
+        m = re.search(r"last\s+(\d+(?:\.\d+)?)\s*(second|seconds|sec|s|minute|minutes|min|m)", q)
         if m:
             n = float(m.group(1))
             unit = m.group(2)
             secs = n * 60 if unit.startswith("m") else n
             return (max(0.0, duration - secs), duration)
 
+        # 5. Standalone MM:SS timestamp mention like "00:15"
+        m = re.search(r"\b(\d{1,2}:\d{2})\b", q)
+        if m:
+            center = self._parse_time_to_seconds(m.group(1))
+            if center is not None:
+                window = 10.0 if duration > 20 else 5.0
+                return (max(0.0, center - window), min(duration, center + window))
+
         return None
 
     def _filter_extracted_to_range(self, extracted: Dict[str, Any], start_sec: float, end_sec: float) -> Dict[str, Any]:
-        """Return a copy of *extracted* keeping only frames within [start_sec, end_sec]."""
+        """Return a copy of *extracted* keeping only frames within [start_sec, end_sec]. Guarantee non-empty keyframes."""
         timestamps = extracted.get("timestamps", [])
         base64_frames = extracted.get("base64_frames", [])
         timestamps_fmt = extracted.get("timestamps_formatted", [])
@@ -645,7 +658,20 @@ class VSSAgentService:
                 if i < len(motion):
                     filtered_mo.append(motion[i])
 
-        seg_duration = end_sec - start_sec
+        # If no keyframes fell strictly in [start_sec, end_sec], pick closest available frames
+        if not filtered_b64 and timestamps and base64_frames:
+            # Find closest frame index
+            closest_idx = min(range(len(timestamps)), key=lambda i: abs(timestamps[i] - ((start_sec + end_sec) / 2.0)))
+            filtered_ts = [timestamps[closest_idx]]
+            filtered_b64 = [base64_frames[closest_idx]]
+            if closest_idx < len(timestamps_fmt):
+                filtered_fmt = [timestamps_fmt[closest_idx]]
+            if closest_idx < len(brightness):
+                filtered_br = [brightness[closest_idx]]
+            if closest_idx < len(motion):
+                filtered_mo = [motion[closest_idx]]
+
+        seg_duration = round(max(1.0, end_sec - start_sec), 1)
         return {
             **extracted,
             "timestamps": filtered_ts if filtered_ts else [start_sec],

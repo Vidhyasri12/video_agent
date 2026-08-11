@@ -220,11 +220,56 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   ]);
   const [chatInput, setChatInput] = useState<string>("");
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
+  const [isChatUploading, setIsChatUploading] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const assistantVideoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const handleChatVideoUpload = async (file: File) => {
+    if (!file) return;
+    setIsChatUploading(true);
+    try {
+      const res = await api.uploadVideo(file, file.name);
+      const uploadedFilename = res.video_info?.filename || file.name;
+      const videoUrl = res.video_info?.video_url ? `${getBackendBase()}${res.video_info.video_url}` : URL.createObjectURL(file);
+
+      setSelectedFile(file);
+      setVideoPreviewUrl(videoUrl);
+      setActiveVideoName(uploadedFilename);
+      setActiveVideoUrl(videoUrl);
+      setActiveVideoTitle(`Uploaded: ${file.name}`);
+      if (res.description) {
+        setUploadDescription(res.description);
+      }
+
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg-upload-${Date.now()}`,
+          sender: "assistant",
+          text: `📹 **Video Uploaded Successfully!**\n\nFile: \`${file.name}\` (${(file.size / (1024 * 1024)).toFixed(2)} MB)\n\nI have processed the keyframes for this video. You can now ask any question about this video or check specific timings (e.g. *What happens from 0:05 to 0:15?* or *What is detected at 00:10?*).`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          suggestions: ["Summarize Video", "What happens from 0:00 to 0:15?", "Detect Objects & People", "Safety & Security Audit"]
+        }
+      ]);
+    } catch (err: any) {
+      console.error("Chat video upload failed:", err);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg-err-${Date.now()}`,
+          sender: "assistant",
+          text: `❌ **Failed to upload video \`${file.name}\`.** Please check file format and try again.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        }
+      ]);
+    } finally {
+      setIsChatUploading(false);
+    }
+  };
 
   const handleSendChatMessage = async (promptText?: string) => {
     const textToSend = promptText || chatInput;
@@ -1172,40 +1217,65 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
           {uploadSubTab === "chat" && (
             <div className="space-y-4">
               
-              {/* Top Video Selector Bar */}
-              <div className="glass-panel p-3.5 rounded-xl border border-slate-800 bg-[#0d1322] flex flex-wrap items-center justify-between gap-3">
+              {/* Hidden File Input for Chat Upload */}
+              <input
+                type="file"
+                ref={chatFileInputRef}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleChatVideoUpload(e.target.files[0]);
+                  }
+                }}
+                accept="video/*"
+                className="hidden"
+              />
+
+              {/* Top Video Selector & Upload Bar */}
+              <div className="glass-panel p-3.5 rounded-xl border border-slate-800 bg-[#0d1322] flex flex-wrap items-center justify-between gap-3 shadow-lg">
                 <div className="flex items-center space-x-2 text-xs text-slate-300">
                   <Film className="w-4 h-4 text-emerald-400" />
                   <span className="font-bold">Active Video:</span>
                   <span className="text-emerald-300 font-mono font-bold truncate max-w-xs">{activeVideoTitle}</span>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-slate-400 font-medium">Select Video:</span>
-                  <select
-                    value={activeVideoName}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      setActiveVideoName(name);
-                      const channelMatch = DEFAULT_VIGI_CHANNELS.find(c => c.sample_video === name || c.video_url?.includes(name));
-                      if (channelMatch) {
-                        setActiveVideoUrl(channelMatch.video_url ? `${getBackendBase()}${channelMatch.video_url}` : `/static/videos/${name}`);
-                        setActiveVideoTitle(channelMatch.name);
-                      } else if (selectedFile && name === selectedFile.name && videoPreviewUrl) {
-                        setActiveVideoUrl(videoPreviewUrl);
-                        setActiveVideoTitle(`Uploaded: ${selectedFile.name}`);
-                      } else {
-                        setActiveVideoUrl(`/static/videos/${name}`);
-                        setActiveVideoTitle(name);
-                      }
-                    }}
-                    className="bg-[#070a12] border border-slate-700 text-xs font-semibold text-emerald-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-slate-400 font-medium">Select Video:</span>
+                    <select
+                      value={activeVideoName}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        setActiveVideoName(name);
+                        const channelMatch = DEFAULT_VIGI_CHANNELS.find(c => c.sample_video === name || c.video_url?.includes(name));
+                        if (channelMatch) {
+                          setActiveVideoUrl(channelMatch.video_url ? `${getBackendBase()}${channelMatch.video_url}` : `/static/videos/${name}`);
+                          setActiveVideoTitle(channelMatch.name);
+                        } else if (selectedFile && name === selectedFile.name && videoPreviewUrl) {
+                          setActiveVideoUrl(videoPreviewUrl);
+                          setActiveVideoTitle(`Uploaded: ${selectedFile.name}`);
+                        } else {
+                          setActiveVideoUrl(`/static/videos/${name}`);
+                          setActiveVideoTitle(name);
+                        }
+                      }}
+                      className="bg-[#070a12] border border-slate-700 text-xs font-semibold text-emerald-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      <option value="Powder Coating Area_20260729122319_721.mp4">Powder Coating Area</option>
+                      <option value="2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4">Loading Area Surveillance</option>
+                      <option value="4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4">Front Entry Reception Gate</option>
+                      {selectedFile && <option value={selectedFile.name}>Uploaded Video: {selectedFile.name}</option>}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => chatFileInputRef.current?.click()}
+                    disabled={isChatUploading}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md"
                   >
-                    <option value="Powder Coating Area_20260729122319_721.mp4">Powder Coating Area</option>
-                    <option value="2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4">Loading Area Surveillance</option>
-                    <option value="4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4">Front Entry Reception Gate</option>
-                    {selectedFile && <option value={selectedFile.name}>Uploaded Video: {selectedFile.name}</option>}
-                  </select>
+                    {isChatUploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    <span>{isChatUploading ? "Uploading..." : "Upload Video"}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1259,7 +1329,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                       </div>
                       <div>
                         <h3 className="text-xs font-extrabold text-white">AI Video Assistant</h3>
-                        <span className="text-[10px] text-slate-400 font-mono">Answers queries & summarizes scenes</span>
+                        <span className="text-[10px] text-slate-400 font-mono">Answers queries & performs timing checks</span>
                       </div>
                     </div>
 
@@ -1269,9 +1339,9 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                           {
                             id: `msg-reset-${Date.now()}`,
                             sender: "assistant",
-                            text: "👋 Chat reset. Ask me any question or click a quick prompt below!",
+                            text: "👋 Chat reset. Ask me any question or specify timing checks below!",
                             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                            suggestions: ["Summarize Video", "Key Timeline Highlights", "Detect Objects & People"]
+                            suggestions: ["Summarize Video", "What happens from 0:00 to 0:15?", "What occurs at 00:10?"]
                           }
                         ]);
                       }}
@@ -1324,7 +1394,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                     {isChatLoading && (
                       <div className="flex items-center space-x-2 text-slate-400 text-xs p-2.5 bg-[#0d1424] border border-slate-800 rounded-2xl w-max animate-pulse">
                         <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-                        <span>Analyzing video frames with AI Assistant...</span>
+                        <span>Evaluating video frames & timing check with AI Assistant...</span>
                       </div>
                     )}
                     <div ref={chatEndRef} />
@@ -1333,7 +1403,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                   {/* Input Form */}
                   <div className="p-2.5 border-t border-slate-800 bg-[#0a0f1d] space-y-1.5 shrink-0">
                     <div className="flex space-x-1 overflow-x-auto pb-1 scrollbar-none">
-                      {["Summarize Video", "Timeline Highlights", "Detect Objects", "Safety Audit"].map((prompt, i) => (
+                      {["Summarize Video", "What happens from 0:00 to 0:15?", "What occurs at 00:10?", "Detect Objects", "Safety Audit"].map((prompt, i) => (
                         <button
                           key={i}
                           onClick={() => handleSendChatMessage(prompt)}
@@ -1345,6 +1415,15 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                     </div>
 
                     <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => chatFileInputRef.current?.click()}
+                        disabled={isChatUploading}
+                        title="Upload video for Chat Assistant"
+                        className="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded-xl border border-slate-700 transition cursor-pointer"
+                      >
+                        {isChatUploading ? <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" /> : <FileVideo className="w-3.5 h-3.5 text-emerald-400" />}
+                      </button>
                       <input
                         type="text"
                         value={chatInput}
@@ -1355,7 +1434,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                             handleSendChatMessage();
                           }
                         }}
-                        placeholder="Ask AI Assistant about this video..."
+                        placeholder="Ask AI Assistant or timing check (e.g. 0:05 to 0:15)..."
                         className="flex-1 bg-[#050811] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                       />
                       <button
