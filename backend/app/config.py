@@ -44,12 +44,13 @@ class Settings(BaseSettings):
     ENABLE_EXPERIMENTAL_CLOUD_APIS: bool = True
     ENABLE_MOCK_PROVIDER: bool = False
 
-    # TP-Link VIGI Settings (No hardcoded passwords in production)
-    VIGI_VMS_HOST: str = "192.168.31.81"
-    VIGI_VMS_PORT: int = 554
+    # TP-Link VIGI & Cloudflare Tunnel Settings
+    VIGI_VMS_HOST: str = "127.0.0.1"
+    VIGI_VMS_PORT: int = 8554
     VIGI_VMS_USERNAME: str = "admin"
-    VIGI_VMS_PASSWORD: str = ""
-    VIGI_VMS_RTSP_URL: str = ""
+    VIGI_VMS_PASSWORD: str = "Gt@102020"
+    VIGI_VMS_RTSP_URL: str = "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1"
+    CLOUDFLARE_HOSTNAME: str = "cam-rtsp.goodwindco.in"
 
     RTSP_CONNECT_TIMEOUT: float = 5.0
     MAX_AUTH_RETRIES: int = 3

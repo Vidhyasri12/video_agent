@@ -1,3 +1,4 @@
+import time
 from fastapi import APIRouter, HTTPException, Body, Query
 from fastapi.responses import StreamingResponse
 from typing import Optional, List, Dict, Any
@@ -101,6 +102,46 @@ async def stream_vigi_live(
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
 
+from app.services.stream_hub import stream_hub
+from fastapi.responses import Response
+
+@router.get("/snapshot")
+def get_vigi_snapshot(
+    channel_id: Optional[str] = Query(None),
+    rtsp_url: Optional[str] = Query(None),
+    provider: Optional[str] = Query(None)
+):
+    """Returns the latest single JPEG snapshot frame from StreamHub without holding long-lived HTTP connections."""
+    active_prov = vigi_service.get_active_provider(provider)
+    ch_info = getattr(active_prov, "channels", {}).get(channel_id) if channel_id else None
+    target_rtsp = rtsp_url or (ch_info.get("rtsp_url") if ch_info else None) or os.environ.get("VIGI_VMS_RTSP_URL", "")
+    channel_name = ch_info.get("name", "TP-Link VIGI Feed") if ch_info else "VIGI RTSP Stream"
+    sub_rtsp = ch_info.get("sub_rtsp_url") if ch_info else None
+    cid = channel_id or "default-channel"
+
+    worker = stream_hub.get_or_create_worker(cid, channel_name, target_rtsp, sub_rtsp)
+    jpeg = worker.latest_jpeg or worker.generate_status_frame("CONNECTING...")
+    return Response(
+        content=jpeg,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+    )
+
+from app.services.tunnel_service import tunnel_service
+
+@router.get("/tunnel/status")
+def get_tunnel_status():
+    """Returns status of the Cloudflare TCP Tunnel supervisor."""
+    return tunnel_service.get_status()
+
+@router.post("/tunnel/restart")
+def restart_tunnel():
+    """Manually triggers tunnel restart."""
+    tunnel_service.stop_supervisor()
+    time.sleep(0.5)
+    tunnel_service.start_supervisor()
+    return tunnel_service.get_status()
+
 @router.get("/config")
 async def get_vigi_config():
     return vigi_service.get_vigi_config()
@@ -137,7 +178,7 @@ async def get_vigi_channels(provider: Optional[str] = Query(None)):
     }
 
 @router.post("/connect")
-async def connect_vigi(req: VigiConnectRequest = Body(...)):
+def connect_vigi(req: VigiConnectRequest = Body(...)):
     # Update active VIGI config with incoming host, RTSP URL, and credentials
     vigi_service.update_vigi_config(
         vigi_host=req.vigi_host,
@@ -157,7 +198,7 @@ async def connect_vigi(req: VigiConnectRequest = Body(...)):
     return result
 
 @router.post("/summarize")
-async def summarize_vigi_stream(req: VigiSummarizeRequest = Body(...)):
+def summarize_vigi_stream(req: VigiSummarizeRequest = Body(...)):
     summary_result = vigi_service.summarize_vigi_stream(
         channel_id=req.channel_id,
         rtsp_url=req.rtsp_url,

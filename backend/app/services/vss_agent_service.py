@@ -338,7 +338,7 @@ class VSSAgentService:
         }
 
         url = vss_url if vss_url.endswith("/chat/completions") else f"{vss_url.rstrip('/')}/chat/completions"
-        resp = requests.post(url, headers=headers, json=payload, timeout=30)
+        resp = requests.post(url, headers=headers, json=payload, timeout=15)
         
         if resp.status_code == 200:
             data = resp.json()

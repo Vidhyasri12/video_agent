@@ -47,16 +47,27 @@ app.mount("/static", StaticFiles(directory="./storage"), name="static")
 
 from sqlalchemy import text
 
+from app.services.tunnel_service import tunnel_service
+
 @app.on_event("startup")
 async def startup_event():
+    # Start Cloudflare Tunnel supervisor & auto-healer
+    try:
+        tunnel_service.start_supervisor()
+    except Exception as e:
+        print(f"Notice: Tunnel supervisor start error: {e}")
+
     if engine is not None:
+        import asyncio
         try:
-            async with engine.begin() as conn:
-                try:
-                    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-                except Exception as ex:
-                    print(f"Extension vector notice: {ex}")
-                await conn.run_sync(Base.metadata.create_all)
+            async def _init_db():
+                async with engine.begin() as conn:
+                    try:
+                        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                    except Exception as ex:
+                        print(f"Extension vector notice: {ex}")
+                    await conn.run_sync(Base.metadata.create_all)
+            await asyncio.wait_for(_init_db(), timeout=1.5)
         except Exception as e:
             print(f"Notice: Database startup skipped ({e}). Operating in standalone mode.")
 

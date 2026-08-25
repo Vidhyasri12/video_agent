@@ -54,4 +54,8 @@ frontend/build/
 # Storage / Media / Logs
 storage/*
 !storage/.gitkeep
+backend/storage/thumbnails/*
+backend/storage/videos/*
+backend/storage/frames/*
 *.log
+bin/

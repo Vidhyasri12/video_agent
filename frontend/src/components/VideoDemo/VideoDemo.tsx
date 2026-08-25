@@ -50,87 +50,101 @@ interface VideoDemoProps {
 const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
   {
     channel_id: "vigi-cam-01",
-    name: "Loading Area",
+    name: "Channel 1 - Loading Area (VIGI C540-W)",
     location: "Cargo Dock / Staging Bay A",
     model: "VIGI C540-W (4MP Outdoor Pan Tilt)",
-    ip_address: "192.168.31.81",
-    port: 554,
-    status: "offline",
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
+    status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://Niyas:Gt%40102020@192.168.31.81:554/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1",
     sample_video: "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4",
     video_url: "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
   },
   {
     channel_id: "vigi-cam-02",
-    name: "Front Door",
-    location: "Main Entry Way / Reception Gate",
+    name: "Channel 2 - Powder Coating Area",
+    location: "Powder Coating Facility Zone 1",
     model: "VIGI C440-W 2.0 (4MP Full-Color)",
-    ip_address: "192.168.31.251",
-    port: 554,
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://Niyas:Gt%40102020@192.168.31.251:554/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream1",
+    sample_video: "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4",
+    video_url: "/static/videos/539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
+  },
+  {
+    channel_id: "vigi-cam-03",
+    name: "Channel 3 - Front Door",
+    location: "Main Entry Way / Reception Gate",
+    model: "VIGI C440-W 2.0 (4MP Full-Color)",
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
+    status: "online",
+    resolution: "2560x1440",
+    fps: 30,
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream1",
     sample_video: "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4",
     video_url: "/static/videos/4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
   },
   {
-    channel_id: "vigi-cam-03",
-    name: "Powder Coating Area",
-    location: "Powder Coating Facility Zone 1",
-    model: "VIGI C440-W 2.0 (4MP Full-Color)",
-    ip_address: "192.168.31.99",
-    port: 554,
-    status: "offline",
-    resolution: "2560x1440",
-    fps: 30,
-    rtsp_url: "rtsp://Niyas:Gt%40102020@192.168.31.99:554/stream1",
-    sample_video: "Powder Coating Area_20260729122319_721.mp4",
-    video_url: "/static/videos/Powder Coating Area_20260729122319_721.mp4"
-  },
-  {
     channel_id: "vigi-cam-04",
-    name: "VIGI C540-W",
-    location: "Perimeter West Gate",
-    model: "VIGI C540-W",
-    ip_address: "192.168.31.81",
-    port: 554,
-    status: "offline",
+    name: "Channel 4 - NVR Central Hub",
+    location: "Main Control Room / NVR Hub",
+    model: "VIGI NVR2016H(UN) (16 Channel NVR)",
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
+    status: "online",
     resolution: "2560x1440",
-    fps: 30,
-    rtsp_url: "rtsp://Niyas:Gt%40102020@192.168.31.81:554/stream2",
+    fps: 25,
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream1",
     sample_video: "69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4",
     video_url: "/static/videos/69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4"
   },
   {
     channel_id: "vigi-cam-05",
-    name: "VIGI C440-W 2.0_9A...",
-    location: "Assembly Line 2",
-    model: "VIGI C440-W 2.0",
-    ip_address: "192.168.31.99",
-    port: 554,
-    status: "offline",
+    name: "Channel 5 - Powder Coating Zone 2",
+    location: "Powder Coating Area Zone 2",
+    model: "VIGI C440-W UN (4MP)",
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
+    status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://Niyas:Gt%40102020@192.168.31.99:554/stream2",
-    sample_video: "71987c96-32e3-447a-a685-0ec2090cbed8.mp4",
-    video_url: "/static/videos/71987c96-32e3-447a-a685-0ec2090cbed8.mp4"
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch5/stream1",
+    sample_video: "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4",
+    video_url: "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
   },
   {
     channel_id: "vigi-cam-06",
-    name: "VIGI C440-W 2.0",
-    location: "Main Entrance Lobby",
-    model: "VIGI C440-W 2.0",
-    ip_address: "192.168.31.251",
-    port: 554,
-    status: "offline",
+    name: "Channel 6 - Front Entry Perimeter",
+    location: "Front Entry Perimeter Gate",
+    model: "VIGI C440-W UN (4MP)",
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
+    status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://Niyas:Gt%40102020@192.168.31.251:554/stream2",
-    sample_video: "785703b3-3887-41a4-93bf-1bb81327f5d3.mp4",
-    video_url: "/static/videos/785703b3-3887-41a4-93bf-1bb81327f5d3.mp4"
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch6/stream1",
+    sample_video: "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4",
+    video_url: "/static/videos/4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
+  },
+  {
+    channel_id: "vigi-cam-07",
+    name: "Channel 7 - Cargo Bay 2",
+    location: "Loading Bay Area West",
+    model: "VIGI C540-W (4MP Outdoor Pan Tilt)",
+    ip_address: "127.0.0.1 (Cloudflare)",
+    port: 8554,
+    status: "online",
+    resolution: "2560x1440",
+    fps: 30,
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch7/stream1",
+    sample_video: "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4",
+    video_url: "/static/videos/539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
   }
 ];
 
@@ -144,7 +158,8 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const [vigiChannels, setVigiChannels] = useState<VigiChannel[]>(DEFAULT_VIGI_CHANNELS);
   const [selectedVigiChannel, setSelectedVigiChannel] = useState<string | null>("vigi-cam-01");
   const [liveSubTab, setLiveSubTab] = useState<"live" | "playback">("live");
-  const [gridCount, setGridCount] = useState<1 | 4 | 9>(4);
+  const [gridCount, setGridCount] = useState<1 | 4 | 7>(1);
+  const [streamRefreshKey, setStreamRefreshKey] = useState<number>(Date.now());
   const [cameraSearch, setCameraSearch] = useState<string>("");
   const [allSitesExpanded, setAllSitesExpanded] = useState<boolean>(true);
   const [defaultExpanded, setDefaultExpanded] = useState<boolean>(true);
@@ -161,10 +176,10 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const uploadSummaryRef = useRef<HTMLDivElement>(null);
 
   // Settings & RTSP Connection States
-  const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://Niyas:Gt%40102020@192.168.31.81:554/stream1");
-  const [vigiHost, setVigiHost] = useState<string>("192.168.31.81");
-  const [vigiPort, setVigiPort] = useState<number>(554);
-  const [vigiUsername, setVigiUsername] = useState<string>("Niyas");
+  const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1");
+  const [vigiHost, setVigiHost] = useState<string>("127.0.0.1");
+  const [vigiPort, setVigiPort] = useState<number>(8554);
+  const [vigiUsername, setVigiUsername] = useState<string>("admin");
   const [vigiPassword, setVigiPassword] = useState<string>("Gt@102020");
   const [streamMode, setStreamMode] = useState<"video" | "mjpeg">("mjpeg");
   const [vigiConnectStatus, setVigiConnectStatus] = useState<{ connected: boolean; message: string } | null>(null);
@@ -569,7 +584,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
           {/* Stream Header Controls Bar */}
           <div className="bg-[#0f172a] border border-slate-800 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-md">
             
-            {/* Mode Switcher */}
+            {/* Mode Switcher & Grid Controls */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center space-x-2 bg-[#070a12] px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-bold text-emerald-400">
                 <Video className="w-4 h-4 text-emerald-400" />
@@ -587,7 +602,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                   }`}
                 >
                   <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Live RTSP Stream</span>
+                  <span>🔴 Live RTSP Stream</span>
                 </button>
                 <button
                   onClick={() => setStreamMode("video")}
@@ -601,6 +616,47 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                   <span>Demo Video File</span>
                 </button>
               </div>
+
+              {/* Layout Switcher (1 Focus, 4 Quad, 7 Wall) */}
+              <div className="flex bg-[#070a12] p-1 rounded-lg border border-slate-800 space-x-1">
+                <button
+                  onClick={() => setGridCount(1)}
+                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
+                    gridCount === 1 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+                  title="Single Focus Camera"
+                >
+                  1x1
+                </button>
+                <button
+                  onClick={() => setGridCount(4)}
+                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
+                    gridCount === 4 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+                  title="Quad Camera Grid"
+                >
+                  2x2
+                </button>
+                <button
+                  onClick={() => setGridCount(7)}
+                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
+                    gridCount === 7 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
+                  }`}
+                  title="Full Surveillance Wall"
+                >
+                  Wall (7)
+                </button>
+              </div>
+
+              {/* Reconnect / Refresh button */}
+              <button
+                onClick={() => setStreamRefreshKey(Date.now())}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#070a12] hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 transition cursor-pointer"
+                title="Reconnect Live RTSP Stream"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Reconnect</span>
+              </button>
             </div>
 
             {/* Quick RTSP input */}
@@ -609,7 +665,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                 type="text"
                 value={customRtspUrl}
                 onChange={(e) => setCustomRtspUrl(e.target.value)}
-                placeholder="rtsp://username:password@camera_ip:554/stream1"
+                placeholder="rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1"
                 className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50"
               />
               <button
@@ -663,7 +719,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                       ) : (
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       )}
-                      <span className="font-bold">All Sites ({vigiChannels.length})</span>
+                      <span className="font-bold">Cloudflare Site ({vigiChannels.length})</span>
                     </span>
                     <Radio className="w-3.5 h-3.5 text-emerald-400 opacity-80" />
                   </button>
@@ -680,7 +736,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                           ) : (
                             <ChevronRight className="w-3 h-3 text-slate-400" />
                           )}
-                          <span>Default ({filteredChannels.length})</span>
+                          <span>NVR Hub ({filteredChannels.length})</span>
                         </span>
                       </button>
 
@@ -696,6 +752,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                                   if (channel.rtsp_url) {
                                     setCustomRtspUrl(channel.rtsp_url);
                                   }
+                                  setStreamRefreshKey(Date.now());
                                 }}
                                 className={`w-full text-left p-2 rounded-xl transition flex flex-col space-y-0.5 cursor-pointer border ${
                                   isSelected
@@ -705,7 +762,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-1.5 truncate">
-                                    <span className={`w-2 h-2 rounded-full ${channel.status === "online" ? "bg-emerald-400" : "bg-emerald-500/60"}`} />
+                                    <span className={`w-2 h-2 rounded-full ${channel.status === "online" ? "bg-emerald-400 animate-pulse" : "bg-emerald-500/60"}`} />
                                     <span className="font-bold text-xs truncate text-white">{channel.name}</span>
                                   </div>
                                 </div>
@@ -729,7 +786,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                 className="w-full py-2 bg-[#070a12] hover:bg-slate-800 text-slate-400 text-xs font-bold rounded-xl border border-slate-800 transition flex items-center justify-center space-x-1.5 cursor-pointer"
               >
                 <XCircle className="w-3.5 h-3.5" />
-                <span>Deselect Camera</span>
+                <span>Deselect / Reset Focus</span>
               </button>
 
             </div>
@@ -740,65 +797,161 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
               {/* Surveillance Grid Container */}
               <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-3 shadow-2xl relative min-h-[500px]">
                 
-                {/* Active Main Focused Camera / Quad Grid Layout */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  
-                  {/* Primary Main Channel View */}
-                  <div className="md:col-span-1 relative bg-black rounded-xl overflow-hidden border border-emerald-500/50 shadow-xl group aspect-video">
-                    {activeChannelObj && activeChannelObj.video_url ? (
+                {/* 1x1 Single Focus Layout */}
+                {gridCount === 1 && (
+                  <div className="relative bg-black rounded-xl overflow-hidden border border-emerald-500/50 shadow-xl group aspect-video">
+                    {streamMode === "mjpeg" ? (
+                      <img
+                        key={`single-${activeChannelObj?.channel_id || "vigi-cam-01"}-${streamRefreshKey}`}
+                        src={`${getBackendBase()}/api/v1/vigi/stream?channel_id=${encodeURIComponent(
+                          activeChannelObj?.channel_id || "vigi-cam-01"
+                        )}&t=${streamRefreshKey}`}
+                        alt={activeChannelObj ? activeChannelObj.name : "Live Stream"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
                       <video
-                        src={`${getBackendBase()}${activeChannelObj.video_url}`}
+                        src={`${getBackendBase()}${activeChannelObj?.video_url || "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"}`}
                         autoPlay
                         loop
                         muted
                         controls
                         className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 p-4">
-                        <Video className="w-12 h-12 mb-2 text-slate-600 animate-pulse" />
-                        <span className="text-xs font-bold text-slate-400">RTSP Stream Pipeline Connecting...</span>
-                        <span className="text-[10px] font-mono text-slate-600 mt-1">{customRtspUrl}</span>
-                      </div>
                     )}
 
-                    {/* Camera OSD Overlay */}
                     <div className="absolute top-2 left-2 bg-black/75 px-2.5 py-1 rounded-lg border border-slate-700/80 text-[11px] font-mono font-bold text-emerald-400 flex items-center space-x-2 backdrop-blur-sm pointer-events-none">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                       <span>{activeChannelObj ? activeChannelObj.name : "VIGI Camera"}</span>
                       <span className="text-slate-500">|</span>
-                      <span className="text-slate-300 font-normal">{activeChannelObj?.model}</span>
+                      <span className="text-slate-300 font-normal">{activeChannelObj?.model || "VIGI 4MP"}</span>
                     </div>
 
                     <div className="absolute bottom-2 right-2 bg-black/75 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 border border-slate-800">
-                      2560x1440 @ 30FPS
+                      2560x1440 @ 30FPS · Cloudflare Tunnel
                     </div>
                   </div>
+                )}
 
-                  {/* Secondary Camera Tiles */}
-                  {vigiChannels.slice(1, 3).map((chan, idx) => (
-                    <div key={chan.channel_id} className="relative bg-[#04060c] rounded-xl overflow-hidden border border-slate-800 aspect-video group">
-                      {chan.video_url ? (
-                        <video
-                          src={`${getBackendBase()}${chan.video_url}`}
-                          autoPlay
-                          loop
-                          muted
+                {/* 2x2 Quad Grid Layout */}
+                {gridCount === 4 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Main Focused Channel (Tile 1) */}
+                    <div className="relative bg-black rounded-xl overflow-hidden border border-emerald-500/50 shadow-xl group aspect-video">
+                      {streamMode === "mjpeg" ? (
+                        <img
+                          key={`quad-main-${activeChannelObj?.channel_id || "vigi-cam-01"}-${streamRefreshKey}`}
+                          src={`${getBackendBase()}/api/v1/vigi/stream?channel_id=${encodeURIComponent(
+                            activeChannelObj?.channel_id || "vigi-cam-01"
+                          )}&t=${streamRefreshKey}`}
+                          alt={activeChannelObj ? activeChannelObj.name : "Live Stream"}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-600 font-mono text-xs">
-                          RTSP STREAM UNAVAILABLE
-                        </div>
+                        <video
+                          src={`${getBackendBase()}${activeChannelObj?.video_url || "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"}`}
+                          autoPlay
+                          loop
+                          muted
+                          controls
+                          className="w-full h-full object-cover"
+                        />
                       )}
 
-                      <div className="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-slate-200 border border-slate-800">
-                        Channel {idx + 2} - {chan.name}
+                      <div className="absolute top-2 left-2 bg-black/75 px-2.5 py-1 rounded-lg border border-slate-700/80 text-[11px] font-mono font-bold text-emerald-400 flex items-center space-x-2 backdrop-blur-sm pointer-events-none">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <span>{activeChannelObj ? activeChannelObj.name : "VIGI Camera"}</span>
+                      </div>
+
+                      <div className="absolute bottom-2 right-2 bg-black/75 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 border border-slate-800">
+                        2560x1440
                       </div>
                     </div>
-                  ))}
 
-                </div>
+                    {/* Other 3 Channels in Quad View */}
+                    {vigiChannels
+                      .filter((chan) => chan.channel_id !== (activeChannelObj?.channel_id || "vigi-cam-01"))
+                      .slice(0, 3)
+                      .map((chan) => (
+                      <div
+                        key={chan.channel_id}
+                        onClick={() => {
+                          setSelectedVigiChannel(chan.channel_id);
+                          if (chan.rtsp_url) setCustomRtspUrl(chan.rtsp_url);
+                          setStreamRefreshKey(Date.now());
+                        }}
+                        className="relative bg-[#04060c] rounded-xl overflow-hidden border border-slate-800 hover:border-emerald-500/60 cursor-pointer aspect-video group transition shadow-md"
+                      >
+                        {streamMode === "mjpeg" ? (
+                          <img
+                            key={`tile-${chan.channel_id}-${streamRefreshKey}`}
+                            src={`${getBackendBase()}/api/v1/vigi/snapshot?channel_id=${encodeURIComponent(chan.channel_id)}&t=${streamRefreshKey}`}
+                            alt={chan.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={`${getBackendBase()}${chan.video_url}`}
+                            autoPlay
+                            loop
+                            muted
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+
+                        <div className="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-slate-200 border border-slate-800 flex items-center space-x-1 backdrop-blur-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span>{chan.name}</span>
+                        </div>
+                        <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Wall View (All 7 Cameras Grid) */}
+                {gridCount === 7 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {vigiChannels.map((chan) => {
+                      const isSelected = selectedVigiChannel === chan.channel_id;
+                      return (
+                        <div
+                          key={chan.channel_id}
+                          onClick={() => {
+                            setSelectedVigiChannel(chan.channel_id);
+                            if (chan.rtsp_url) setCustomRtspUrl(chan.rtsp_url);
+                            setStreamRefreshKey(Date.now());
+                          }}
+                          className={`relative bg-[#04060c] rounded-xl overflow-hidden border transition cursor-pointer aspect-video group ${
+                            isSelected ? "border-emerald-500 shadow-lg shadow-emerald-500/20" : "border-slate-800 hover:border-slate-700"
+                          }`}
+                        >
+                          {streamMode === "mjpeg" ? (
+                            <img
+                              key={`wall-${chan.channel_id}-${streamRefreshKey}`}
+                              src={`${getBackendBase()}/api/v1/vigi/${isSelected ? "stream" : "snapshot"}?channel_id=${encodeURIComponent(chan.channel_id)}&t=${streamRefreshKey}`}
+                              alt={chan.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={`${getBackendBase()}${chan.video_url}`}
+                              autoPlay
+                              loop
+                              muted
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+
+                          <div className="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-slate-200 border border-slate-800 flex items-center space-x-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-emerald-400 animate-ping" : "bg-emerald-500"}`} />
+                            <span className="truncate max-w-[150px]">{chan.name}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
               </div>
 
@@ -1550,6 +1703,56 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                   <span>{vigiConnectStatus.message}</span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Card: Cloudflare TCP Tunnel Configuration */}
+          <div className="glass-panel p-6 rounded-2xl space-y-4 border border-indigo-500/40 bg-[#0d1322] shadow-lg">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Cloudflare TCP Tunnel (Zero-VPN RTSP)</h3>
+                  <p className="text-xs text-slate-400">Routes camera RTSP stream securely through Cloudflare Tunnel without public port forwarding.</p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono font-bold rounded-full flex items-center space-x-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>TUNNEL ACTIVE</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+              <div className="bg-[#050811] p-3 rounded-xl border border-slate-800 space-y-1">
+                <span className="text-slate-500 text-[10px] block">REMOTE HOSTNAME</span>
+                <span className="text-indigo-300 font-bold">cam-rtsp.goodwindco.in</span>
+              </div>
+              <div className="bg-[#050811] p-3 rounded-xl border border-slate-800 space-y-1">
+                <span className="text-slate-500 text-[10px] block">LOCAL TCP LISTENER</span>
+                <span className="text-emerald-300 font-bold">127.0.0.1:8554</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-bold text-slate-300 block">Quick Channel Presets (Cloudflare Tunnel):</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 2, 3, 4, 5, 6, 7].map((ch) => (
+                  <button
+                    key={ch}
+                    onClick={() => {
+                      const url = `rtsp://admin:Gt%40102020@127.0.0.1:8554/ch${ch}/stream1`;
+                      setCustomRtspUrl(url);
+                      setSelectedVigiChannel(`vigi-cam-0${ch}`);
+                      setStreamRefreshKey(Date.now());
+                    }}
+                    className="px-3 py-1.5 bg-[#050811] hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 text-xs font-bold rounded-lg border border-slate-800 transition cursor-pointer"
+                  >
+                    Channel {ch}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
