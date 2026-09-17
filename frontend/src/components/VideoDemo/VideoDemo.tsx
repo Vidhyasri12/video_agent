@@ -58,7 +58,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm",
     sample_video: "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4",
     video_url: "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
   },
@@ -72,7 +72,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/2/1/avm",
     sample_video: "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4",
     video_url: "/static/videos/539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
   },
@@ -86,7 +86,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/3/1/avm",
     sample_video: "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4",
     video_url: "/static/videos/4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
   },
@@ -100,7 +100,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 25,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/4/1/avm",
     sample_video: "69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4",
     video_url: "/static/videos/69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4"
   },
@@ -114,7 +114,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch5/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/5/1/avm",
     sample_video: "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4",
     video_url: "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
   },
@@ -128,7 +128,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch6/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/6/1/avm",
     sample_video: "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4",
     video_url: "/static/videos/4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
   },
@@ -142,7 +142,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch7/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/7/1/avm",
     sample_video: "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4",
     video_url: "/static/videos/539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
   }
@@ -176,7 +176,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const uploadSummaryRef = useRef<HTMLDivElement>(null);
 
   // Settings & RTSP Connection States
-  const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1");
+  const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm");
   const [vigiHost, setVigiHost] = useState<string>("127.0.0.1");
   const [vigiPort, setVigiPort] = useState<number>(8554);
   const [vigiUsername, setVigiUsername] = useState<string>("admin");
@@ -665,7 +665,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                 type="text"
                 value={customRtspUrl}
                 onChange={(e) => setCustomRtspUrl(e.target.value)}
-                placeholder="rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1"
+                placeholder="rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm"
                 className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50"
               />
               <button
@@ -1742,7 +1742,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                   <button
                     key={ch}
                     onClick={() => {
-                      const url = `rtsp://admin:Gt%40102020@127.0.0.1:8554/ch${ch}/stream1`;
+                      const url = `rtsp://admin:Gt%40102020@127.0.0.1:8554/live/${ch}/1/avm`;
                       setCustomRtspUrl(url);
                       setSelectedVigiChannel(`vigi-cam-0${ch}`);
                       setStreamRefreshKey(Date.now());

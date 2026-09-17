@@ -57,7 +57,7 @@ DEFAULT_OPENAPI_DEVICES: List[Dict[str, Any]] = [
         "firmware_version": "v1.3.0 Build 251120",
         "status": "online",
         "openapi_enabled": True,
-        "rtsp_url": "rtsp://Niyas:Gt%40102020@192.168.31.227:554/ch1/stream1",
+        "rtsp_url": "rtsp://Niyas:Gt%40102020@192.168.31.227:554/live/1/1/avm",
         "capabilities": ["multi_channel_recording", "ai_analytics", "cloud_sync"]
     }
 ]

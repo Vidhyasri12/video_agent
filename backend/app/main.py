@@ -71,6 +71,11 @@ async def startup_event():
         except Exception as e:
             print(f"Notice: Database startup skipped ({e}). Operating in standalone mode.")
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop the child cloudflared process when the API server exits."""
+    tunnel_service.stop_supervisor()
+
 @app.get("/")
 async def root():
     return {

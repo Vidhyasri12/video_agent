@@ -284,4 +284,3 @@ export interface VideoChatResponse {
   detected_objects?: string[];
   safety_highlights?: string[];
 }
-

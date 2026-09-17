@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     VIGI_VMS_PORT: int = 8554
     VIGI_VMS_USERNAME: str = "admin"
     VIGI_VMS_PASSWORD: str = "Gt@102020"
-    VIGI_VMS_RTSP_URL: str = "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1"
-    CLOUDFLARE_HOSTNAME: str = "cam-rtsp.goodwindco.in"
+    VIGI_VMS_RTSP_URL: str = "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm"
+    CLOUDFLARE_HOSTNAME: str = "nvr1.goodwindco.in"
 
     RTSP_CONNECT_TIMEOUT: float = 5.0
     MAX_AUTH_RETRIES: int = 3
@@ -72,6 +72,7 @@ class Settings(BaseSettings):
             "vigi_vms_username": self.VIGI_VMS_USERNAME,
             "vigi_vms_password_set": bool(self.VIGI_VMS_PASSWORD),
             "vigi_vms_rtsp_url_configured": bool(self.VIGI_VMS_RTSP_URL),
+            "cloudflare_hostname": self.CLOUDFLARE_HOSTNAME,
             "enable_experimental_cloud_apis": self.ENABLE_EXPERIMENTAL_CLOUD_APIS,
             "enable_mock_provider": self.ENABLE_MOCK_PROVIDER
         }

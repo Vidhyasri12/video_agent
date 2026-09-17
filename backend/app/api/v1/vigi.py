@@ -99,14 +99,19 @@ async def stream_vigi_live(
 ):
     return StreamingResponse(
         vigi_service.generate_mjpeg_stream(channel_id=channel_id, rtsp_url=rtsp_url, provider_name=provider),
-        media_type="multipart/x-mixed-replace; boundary=frame"
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 from app.services.stream_hub import stream_hub
 from fastapi.responses import Response
 
 @router.get("/snapshot")
-def get_vigi_snapshot(
+async def get_vigi_snapshot(
     channel_id: Optional[str] = Query(None),
     rtsp_url: Optional[str] = Query(None),
     provider: Optional[str] = Query(None)
@@ -120,7 +125,18 @@ def get_vigi_snapshot(
     cid = channel_id or "default-channel"
 
     worker = stream_hub.get_or_create_worker(cid, channel_name, target_rtsp, sub_rtsp)
-    jpeg = worker.latest_jpeg or worker.generate_status_frame("CONNECTING...")
+    worker.add_subscriber()
+    try:
+        # A snapshot request must start the worker too; previously only long-lived
+        # stream requests did, leaving every non-selected grid tile on CONNECTING.
+        import asyncio
+        deadline = time.monotonic() + 1.5
+        initial_frame_time = worker.last_frame_time
+        while worker.last_frame_time <= initial_frame_time and time.monotonic() < deadline:
+            await asyncio.sleep(0.05)
+        jpeg = worker.latest_jpeg or worker.generate_status_frame("CONNECTING...")
+    finally:
+        worker.remove_subscriber()
     return Response(
         content=jpeg,
         media_type="image/jpeg",

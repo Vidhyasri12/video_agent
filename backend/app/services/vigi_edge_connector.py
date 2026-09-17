@@ -48,7 +48,7 @@ class EdgeConnectorManager:
             ("vigi-cam-01", "Channel 1 - Loading Area (VIGI C540-W)", "192.168.31.81", "rtsp://Niyas:Gt%40102020@192.168.31.81:554/stream1"),
             ("vigi-cam-02", "Channel 2 - Powder Coating Area (VIGI C440-W 2.0)", "192.168.31.99", "rtsp://Niyas:Gt%40102020@192.168.31.99:554/stream1"),
             ("vigi-cam-03", "Channel 3 - Front Door (VIGI C440-W 2.0)", "192.168.31.251", "rtsp://Niyas:Gt%40102020@192.168.31.251:554/stream1"),
-            ("vigi-cam-04", "VIGI NVR2016H(UN) - Channel 1", "192.168.31.227", "rtsp://Niyas:Gt%40102020@192.168.31.227:554/ch1/stream1"),
+            ("vigi-cam-04", "VIGI NVR2016H(UN) - Channel 1", "192.168.31.227", "rtsp://Niyas:Gt%40102020@192.168.31.227:554/live/1/1/avm"),
         ]
 
         with self.lock:

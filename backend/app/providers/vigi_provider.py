@@ -60,7 +60,7 @@ def format_rtsp_url(rtsp_url: str) -> str:
     Official TP-Link VIGI RTSP Specs:
     - Main Stream: rtsp://username:password@ip:554/stream1
     - Sub Stream:  rtsp://username:password@ip:554/stream2
-    - NVR Channel: rtsp://username:password@ip:554/ch1/stream1
+    - NVR Channel: rtsp://username:password@ip:554/live/1/1/avm
     """
     if not rtsp_url or not rtsp_url.startswith("rtsp://"):
         return rtsp_url
@@ -91,8 +91,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/2/avm",
         "sample_video": "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
     },
     {
@@ -105,8 +105,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/2/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/2/2/avm",
         "sample_video": "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
     },
     {
@@ -119,8 +119,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/3/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/3/2/avm",
         "sample_video": "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
     },
     {
@@ -133,8 +133,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 25,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/4/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/4/2/avm",
         "sample_video": "69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4"
     },
     {
@@ -147,7 +147,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch5/stream1",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/5/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/5/2/avm",
         "sample_video": "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
     },
     {
@@ -160,7 +161,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch6/stream1",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/6/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/6/2/avm",
         "sample_video": "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
     },
     {
@@ -173,7 +175,8 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch7/stream1",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/7/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/7/2/avm",
         "sample_video": "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
     }
 ]
@@ -273,7 +276,13 @@ class VigiProvider(CameraProvider):
             connected = True
             resolution = worker.resolution if worker else "2560x1440"
         elif socket_open and cv2 is not None:
-            for try_url in [target_url, target_url.replace("/stream1", "/stream2")]:
+            substream_url = target_url.replace("/stream1", "/stream2")
+            if "/live/" in target_url:
+                path_parts = target_url.rsplit("/", 3)
+                if len(path_parts) == 4 and path_parts[-2] == "1" and path_parts[-1] == "avm":
+                    path_parts[-2] = "2"
+                    substream_url = "/".join(path_parts)
+            for try_url in dict.fromkeys([target_url, substream_url]):
                 try:
                     os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;2000000"
                     cap = cv2.VideoCapture(try_url, cv2.CAP_FFMPEG)
@@ -287,11 +296,6 @@ class VigiProvider(CameraProvider):
                             break
                 except Exception as e:
                     logger.warning(f"RTSP connection attempt error for {try_url}: {e}")
-
-        # If socket on local tunnel port 8554 is open, consider connected
-        if not connected and socket_open and (vms_host in ("127.0.0.1", "localhost") or port == 8554):
-            connected = True
-            resolution = "2560x1440"
 
         latency_ms = round((time.time() - start_time) * 1000, 2)
 
@@ -307,7 +311,10 @@ class VigiProvider(CameraProvider):
             }
 
         # Check if mock/simulated fallback is allowed (default to true for seamless client/dev operations)
-        enable_mock = os.environ.get("ENABLE_MOCK_PROVIDER", "true").lower() in ("true", "1", "yes")
+        enable_mock = os.environ.get(
+            "ENABLE_MOCK_PROVIDER",
+            str(settings.ENABLE_MOCK_PROVIDER),
+        ).lower() in ("true", "1", "yes")
         if enable_mock:
             return {
                 "status": "online_simulated",
@@ -325,11 +332,20 @@ class VigiProvider(CameraProvider):
     def get_channels(self) -> List[Dict[str, Any]]:
         """Returns list of configured TP-Link VIGI channels."""
         env_rtsp = os.environ.get("VIGI_VMS_RTSP_URL", "")
-        channels_list = list(self.channels.values())
+        channels_list = [dict(channel) for channel in self.channels.values()]
+        uses_cloudflare_tunnel = any(
+            "127.0.0.1:8554" in channel.get("rtsp_url", "")
+            for channel in channels_list
+        )
+        tunnel_status = tunnel_service.get_status() if uses_cloudflare_tunnel else None
         if env_rtsp:
             for ch in channels_list:
                 if not ch.get("rtsp_url"):
                     ch["rtsp_url"] = env_rtsp
+        if tunnel_status and not tunnel_status["active"]:
+            for ch in channels_list:
+                ch["status"] = "offline"
+                ch["stream_error"] = tunnel_status.get("last_error")
         return channels_list
 
     def discover_network_devices(self) -> List[Dict[str, Any]]:

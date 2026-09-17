@@ -12,7 +12,7 @@ To ensure enterprise production readiness, features are strictly audited against
 
 | Feature / Interface | Implementation Mechanism | Support Status | Verification Status | Official TP-Link Documentation Reference | Production Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **RTSP Live Streaming** | `rtsp://<user>:<pass>@<ip>:554/stream1` (Main) / `stream2` (Sub) / `ch1/stream1` (NVR) | **Officially Supported** | Verified via RTSP protocol & openCV ingestion | TP-Link VIGI NVR & Camera RTSP Stream User Guide | **Production Ready** |
+| **RTSP Live Streaming** | `rtsp://<user>:<pass>@<ip>:554/stream1` (Main) / `stream2` (Sub) / `live/1/1/avm` (NVR) | **Officially Supported** | Verified via RTSP protocol & openCV ingestion | TP-Link VIGI NVR & Camera RTSP Stream User Guide | **Production Ready** |
 | **ONVIF Camera Discovery** | WS-Discovery Multicast (UDP port 3702 `dn:NetworkVideoTransmitter`) | **Officially Supported** | Verified via socket multicast probe | ONVIF Profile S Core Specification v2.1 / TP-Link VIGI ONVIF Specs | **Production Ready** |
 | **Local VMS Integration** | Direct RTSP / HTTP API connection to VIGI VMS software host | **Officially Supported** | Verified via network socket & stream test | TP-Link VIGI VMS User Manual | **Production Ready** |
 | **Device Authentication** | RTSP Digest/Basic Authentication & Local Credentials | **Officially Supported** | Verified via stream access control | TP-Link VIGI Security Architecture Specification | **Production Ready** |
@@ -32,7 +32,7 @@ To ensure enterprise production readiness, features are strictly audited against
 #### RTSP Live Stream Ingestion
 - **Main Stream (High Quality)**: `rtsp://username:password@<IP>:554/stream1`
 - **Sub Stream (Lower Latency)**: `rtsp://username:password@<IP>:554/stream2`
-- **NVR Multi-Channel Stream**: `rtsp://username:password@<IP>:554/ch<channel_number>/stream1`
+- **NVR Multi-Channel Stream**: `rtsp://username:password@<IP>:554/live/<channel_number>/1/avm`
 - **Doc Reference**: TP-Link VIGI Camera & NVR Configuration Manual (RTSP RFC 2326 compliant).
 
 #### ONVIF WS-Discovery

@@ -94,6 +94,11 @@ class ChannelStreamWorker:
             urls_to_try.append(self.sub_url)
         elif "/stream1" in self.primary_url:
             urls_to_try.append(self.primary_url.replace("/stream1", "/stream2"))
+        elif "/live/" in self.primary_url:
+            path_parts = self.primary_url.rsplit("/", 3)
+            if len(path_parts) == 4 and path_parts[-2] == "1" and path_parts[-1] == "avm":
+                path_parts[-2] = "2"
+                urls_to_try.append("/".join(path_parts))
 
         cap = None
         current_url_idx = 0
