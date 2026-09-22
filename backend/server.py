@@ -74,6 +74,33 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if "/api/v1/vigi/playback/stream" in path or "/vigi/playback/stream" in path:
+            query = urllib.parse.parse_qs(parsed.query)
+            channel_id = query.get("channel_id", ["1"])[0]
+            start_time = query.get("start_time", [""])[0]
+            end_time = query.get("end_time", [""])[0]
+            stream_id = query.get("stream_id", ["1"])[0]
+            rtsp_url = query.get("rtsp_url", [None])[0]
+
+            self.send_response(200)
+            self._set_cors_headers()
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+            self.end_headers()
+
+            try:
+                for frame_chunk in vigi_service.generate_playback_mjpeg_stream(
+                    channel_id=channel_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                    stream_id=stream_id,
+                    rtsp_url=rtsp_url
+                ):
+                    self.wfile.write(frame_chunk)
+                    self.wfile.flush()
+            except Exception:
+                pass
+            return
+
         if "/api/v1/vigi/stream" in path or "/vigi/stream" in path:
             query = urllib.parse.parse_qs(parsed.query)
             channel_id = query.get("channel_id", [None])[0]
@@ -91,6 +118,7 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
             except Exception:
                 pass
             return
+
 
         if "/api/v1/vigi/config" in path or "/vigi/config" in path:
             self.send_response(200)
@@ -363,6 +391,57 @@ class VideoAgentHandler(http.server.BaseHTTPRequestHandler):
                 "vigi_metadata": summary_res.get("vigi_metadata", {})
             }).encode("utf-8"))
             return
+
+        if "/api/v1/vigi/playback/url" in path or "/vigi/playback/url" in path:
+            payload = {}
+            if body:
+                try:
+                    payload = json.loads(body.decode('utf-8'))
+                except Exception:
+                    pass
+            replay_url = vigi_service.build_playback_url(
+                channel=payload.get("channel_id", "1"),
+                stream=payload.get("stream_id", "1"),
+                start_time=payload.get("start_time", ""),
+                end_time=payload.get("end_time", ""),
+                host=payload.get("host"),
+                port=payload.get("port", 8554),
+                username=payload.get("username", "admin"),
+                password=payload.get("password", "Gt@102020")
+            )
+            self.send_response(200)
+            self._set_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "rtsp_url": replay_url}).encode("utf-8"))
+            return
+
+        if "/api/v1/vigi/playback/summarize" in path or "/vigi/playback/summarize" in path:
+            payload = {}
+            if body:
+                try:
+                    payload = json.loads(body.decode('utf-8'))
+                except Exception:
+                    pass
+            summary_res = vigi_service.summarize_playback_stream(
+                channel_id=payload.get("channel_id", "1"),
+                start_time=payload.get("start_time", ""),
+                end_time=payload.get("end_time", ""),
+                duration_seconds=payload.get("duration_seconds", 15),
+                rtsp_url=payload.get("rtsp_url")
+            )
+            self.send_response(200)
+            self._set_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "success",
+                "summary": summary_res.get("summary", ""),
+                "description": summary_res,
+                "vigi_metadata": summary_res.get("vigi_metadata", {})
+            }).encode("utf-8"))
+            return
+
 
 
         self.send_response(404)

@@ -17,7 +17,96 @@ import socket
 import logging
 import urllib.parse
 from typing import Dict, Any, List, Optional, Generator
-from datetime import datetime
+from datetime import datetime, timezone
+
+def format_vigi_utc_timestamp(dt_input: Any) -> str:
+    """
+    Formats datetime object, ISO timestamp string, or raw string into TP-Link VIGI UTC format:
+    YYYYMMDDtHHMMSSz (e.g. 20260828t043000z)
+    """
+    if not dt_input:
+        dt = datetime.now(timezone.utc)
+        return dt.strftime("%Y%m%dt%H%M%Sz")
+    
+    if isinstance(dt_input, datetime):
+        if dt_input.tzinfo is None:
+            dt_input = dt_input.replace(tzinfo=timezone.utc)
+        else:
+            dt_input = dt_input.astimezone(timezone.utc)
+        return dt_input.strftime("%Y%m%dt%H%M%Sz")
+
+    s = str(dt_input).strip()
+    if len(s) == 16 and s[8].lower() == 't' and s[15].lower() == 'z':
+        return f"{s[:8]}t{s[9:15]}z".lower()
+
+    clean_s = s.replace("Z", "+00:00").replace("z", "+00:00")
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%d-%m-%Y %H:%M:%S",
+        "%d-%m-%Y %H:%M",
+        "%d-%m-%YT%H:%M:%S",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%YT%H:%M:%S",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%dT%H:%M:%S",
+        "%Y%m%d%H%M%S",
+    ):
+        try:
+            parsed = datetime.strptime(clean_s, fmt)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            else:
+                parsed = parsed.astimezone(timezone.utc)
+            return parsed.strftime("%Y%m%dt%H%M%Sz")
+        except ValueError:
+            continue
+
+    # Fallback cleanup if string contains spaces or hyphens
+    sanitized = s.replace(" ", "").replace("-", "").replace(":", "").lower()
+    if len(sanitized) >= 14 and sanitized[:8].isdigit():
+        d_part = sanitized[:8]
+        t_part = sanitized[8:14]
+        return f"{d_part}t{t_part}z"
+
+    return s.replace(" ", "")
+
+def build_vigi_playback_url(
+    channel: str = "1",
+    stream: str = "1",
+    start_time: str = "",
+    end_time: str = "",
+    host: str = "127.0.0.1",
+    port: int = 8554,
+    username: str = "admin",
+    password: str = "Gt@102020"
+) -> str:
+    """
+    Constructs TP-Link VIGI RTSP Replay URL:
+    rtsp://<user>:<pass>@<host>:<port>/replay/<channel>/<stream>/avm?starttime=<START>&endtime=<END>
+    Timestamps use UTC YYYYMMDDtHHMMSSz format.
+    """
+    start_fmt = format_vigi_utc_timestamp(start_time)
+    end_fmt = format_vigi_utc_timestamp(end_time)
+
+    ch_str = str(channel)
+    if "vigi-cam-" in ch_str:
+        ch_str = str(int(ch_str.replace("vigi-cam-", "")))
+    elif not ch_str.isdigit():
+        ch_str = "1"
+
+    st_str = str(stream) if str(stream) in ("1", "2") else "1"
+    host_str = host or "127.0.0.1"
+    port_str = f":{port}" if port and port != 554 else (":8554" if host_str in ("127.0.0.1", "localhost") else "")
+
+    quoted_user = urllib.parse.quote(username or "admin", safe="")
+    quoted_pass = urllib.parse.quote(password or "", safe="")
+    
+    return f"rtsp://{quoted_user}:{quoted_pass}@{host_str}{port_str}/replay/{ch_str}/{st_str}/avm?starttime={start_fmt}&endtime={end_fmt}"
+
 
 try:
     import cv2
@@ -83,7 +172,7 @@ def format_rtsp_url(rtsp_url: str) -> str:
 DEFAULT_VIGI_CHANNELS = [
     {
         "channel_id": "vigi-cam-01",
-        "name": "Channel 1 - Loading Area (VIGI C540-W)",
+        "name": "Channel 1 - Loading Area",
         "location": "Loading Dock / Cargo Staging Bay A",
         "model": "VIGI C540-W (4MP Outdoor Pan Tilt)",
         "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
@@ -91,13 +180,13 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/2/avm",
         "sample_video": "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
     },
     {
         "channel_id": "vigi-cam-02",
-        "name": "Channel 2 - Powder Coating Area (VIGI C440-W 2.0)",
+        "name": "Channel 2 - Powder Coating Area",
         "location": "Powder Coating Facility Zone 1",
         "model": "VIGI C440-W 2.0 (4MP Full-Color)",
         "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
@@ -105,13 +194,13 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/2/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/2/2/avm",
         "sample_video": "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
     },
     {
         "channel_id": "vigi-cam-03",
-        "name": "Channel 3 - Front Door (VIGI C440-W 2.0)",
+        "name": "Channel 3 - Front Door",
         "location": "Main Entry Way / Reception Gate",
         "model": "VIGI C440-W 2.0 (4MP Full-Color)",
         "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
@@ -119,13 +208,13 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/3/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/3/2/avm",
         "sample_video": "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
     },
     {
         "channel_id": "vigi-cam-04",
-        "name": "Channel 4 - NVR Central Hub (VIGI NVR2016H)",
+        "name": "Channel 4 - NVR Central Hub",
         "location": "Main Control Room / NVR Hub",
         "model": "VIGI NVR2016H(UN) (16 Channel NVR)",
         "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
@@ -133,48 +222,9 @@ DEFAULT_VIGI_CHANNELS = [
         "status": "online",
         "resolution": "2560x1440",
         "fps": 25,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream1",
-        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream2",
+        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/4/1/avm",
+        "sub_rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/4/2/avm",
         "sample_video": "69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4"
-    },
-    {
-        "channel_id": "vigi-cam-05",
-        "name": "Channel 5 - Powder Coating Zone 2 (VIGI C440-W)",
-        "location": "Powder Coating Area Zone 2",
-        "model": "VIGI C440-W UN (4MP)",
-        "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
-        "port": 8554,
-        "status": "online",
-        "resolution": "2560x1440",
-        "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch5/stream1",
-        "sample_video": "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
-    },
-    {
-        "channel_id": "vigi-cam-06",
-        "name": "Channel 6 - Front Entry Perimeter (VIGI C440-W)",
-        "location": "Front Entry Perimeter Gate",
-        "model": "VIGI C440-W UN (4MP)",
-        "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
-        "port": 8554,
-        "status": "online",
-        "resolution": "2560x1440",
-        "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch6/stream1",
-        "sample_video": "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
-    },
-    {
-        "channel_id": "vigi-cam-07",
-        "name": "Channel 7 - Cargo Bay 2 (VIGI C540-W)",
-        "location": "Loading Bay Area West",
-        "model": "VIGI C540-W (4MP Outdoor Pan Tilt)",
-        "ip_address": "127.0.0.1 (Cloudflare Tunnel)",
-        "port": 8554,
-        "status": "online",
-        "resolution": "2560x1440",
-        "fps": 30,
-        "rtsp_url": "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch7/stream1",
-        "sample_video": "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
     }
 ]
 
@@ -493,6 +543,95 @@ class VigiProvider(CameraProvider):
         res["agent_provider"] = "TP-Link VIGI Live RTSP + NVIDIA VSS Agent"
         return res
 
+    def generate_playback_mjpeg_stream(
+        self,
+        channel_id: Optional[str] = "1",
+        start_time: str = "",
+        end_time: str = "",
+        stream_id: str = "1",
+        host: Optional[str] = None,
+        port: int = 8554,
+        username: str = "admin",
+        password: str = "Gt@102020",
+        rtsp_url: Optional[str] = None
+    ) -> Generator[bytes, None, None]:
+        """Transcodes VIGI RTSP Replay stream into HTTP MJPEG stream."""
+        target_host = host or os.environ.get("VIGI_VMS_HOST", "127.0.0.1")
+        target_port = port or 8554
+        target_user = username or os.environ.get("VIGI_VMS_USERNAME", "admin")
+        target_pass = password or os.environ.get("VIGI_VMS_PASSWORD", "Gt@102020")
+
+        if rtsp_url:
+            replay_url = rtsp_url
+        else:
+            replay_url = build_vigi_playback_url(
+                channel=channel_id or "1",
+                stream=stream_id,
+                start_time=start_time,
+                end_time=end_time,
+                host=target_host,
+                port=target_port,
+                username=target_user,
+                password=target_pass
+            )
+
+        ch_info = self.channels.get(channel_id) if channel_id else None
+        channel_name = f"Playback ({ch_info.get('name', f'Channel {channel_id}') if ch_info else channel_id})"
+        playback_cid = f"playback-{channel_id or '1'}-{start_time}-{end_time}"
+
+        return stream_hub.generate_mjpeg_stream(
+            channel_id=playback_cid,
+            channel_name=channel_name,
+            primary_url=replay_url
+        )
+
+    def summarize_playback_stream(
+        self,
+        channel_id: Optional[str] = "1",
+        start_time: str = "",
+        end_time: str = "",
+        duration_seconds: int = 15,
+        host: Optional[str] = None,
+        username: str = "admin",
+        password: str = "Gt@102020",
+        rtsp_url: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Summarizes historical video clip by extracting keyframes from VIGI RTSP Replay stream."""
+        target_host = host or os.environ.get("VIGI_VMS_HOST", "127.0.0.1")
+        target_port = 8554
+        target_user = username or os.environ.get("VIGI_VMS_USERNAME", "admin")
+        target_pass = password or os.environ.get("VIGI_VMS_PASSWORD", "Gt@102020")
+
+        if rtsp_url:
+            replay_url = rtsp_url
+        else:
+            replay_url = build_vigi_playback_url(
+                channel=channel_id or "1",
+                stream="1",
+                start_time=start_time,
+                end_time=end_time,
+                host=target_host,
+                port=target_port,
+                username=target_user,
+                password=target_pass
+            )
+
+        summary_res = self.summarize_stream(
+            channel_id=channel_id,
+            rtsp_url=replay_url,
+            duration_seconds=duration_seconds,
+            host=target_host,
+            username=target_user,
+            password=target_pass
+        )
+
+        summary_res["title"] = f"TP-Link VIGI Playback Summary (Ch {channel_id})"
+        summary_res["vigi_metadata"]["is_live"] = False
+        summary_res["vigi_metadata"]["playback_start"] = format_vigi_utc_timestamp(start_time)
+        summary_res["vigi_metadata"]["playback_end"] = format_vigi_utc_timestamp(end_time)
+        summary_res["vigi_metadata"]["replay_rtsp_url"] = replay_url
+        return summary_res
+
     def get_health(self) -> Dict[str, Any]:
         """Returns health metrics for TP-Link VIGI deployment."""
         caps = self.detect_capabilities()
@@ -504,3 +643,4 @@ class VigiProvider(CameraProvider):
             "capabilities": caps,
             "timestamp": datetime.now().isoformat()
         }
+

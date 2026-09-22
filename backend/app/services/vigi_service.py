@@ -8,6 +8,7 @@ import os
 import logging
 from typing import Dict, Any, List, Optional, Generator
 from app.providers.provider_factory import ProviderFactory
+from app.providers.vigi_provider import build_vigi_playback_url
 from app.services.vigi_openapi_client import vigi_openapi_client
 from app.services.vigi_edge_connector import vigi_edge_connector
 from app.config import settings
@@ -125,6 +126,77 @@ class VigiVmsService:
             username=username,
             password=password
         )
+
+    def build_playback_url(
+        self,
+        channel: str = "1",
+        stream: str = "1",
+        start_time: str = "",
+        end_time: str = "",
+        host: Optional[str] = None,
+        port: int = 8554,
+        username: str = "",
+        password: str = ""
+    ) -> str:
+        """Constructs TP-Link VIGI RTSP Replay URL."""
+        vms_host = host or settings.VIGI_VMS_HOST or "127.0.0.1"
+        vms_user = username or settings.VIGI_VMS_USERNAME or "admin"
+        vms_pass = password or settings.VIGI_VMS_PASSWORD or "Gt@102020"
+        return build_vigi_playback_url(
+            channel=channel,
+            stream=stream,
+            start_time=start_time,
+            end_time=end_time,
+            host=vms_host,
+            port=port or 8554,
+            username=vms_user,
+            password=vms_pass
+        )
+
+    def generate_playback_mjpeg_stream(
+        self,
+        channel_id: Optional[str] = "1",
+        start_time: str = "",
+        end_time: str = "",
+        stream_id: str = "1",
+        rtsp_url: Optional[str] = None,
+        provider_name: Optional[str] = None
+    ) -> Generator[bytes, None, None]:
+        """Generates HTTP MJPEG stream from VIGI RTSP playback feed."""
+        provider = self.get_active_provider(provider_name)
+        if hasattr(provider, "generate_playback_mjpeg_stream"):
+            return provider.generate_playback_mjpeg_stream(
+                channel_id=channel_id,
+                start_time=start_time,
+                end_time=end_time,
+                stream_id=stream_id,
+                rtsp_url=rtsp_url
+            )
+        target_url = rtsp_url or self.build_playback_url(channel=channel_id or "1", stream=stream_id, start_time=start_time, end_time=end_time)
+        return provider.generate_mjpeg_stream(channel_id=f"playback-{channel_id}", rtsp_url=target_url)
+
+    def summarize_playback_stream(
+        self,
+        channel_id: Optional[str] = "1",
+        start_time: str = "",
+        end_time: str = "",
+        duration_seconds: int = 15,
+        rtsp_url: Optional[str] = None,
+        provider_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Runs AI summarization on a recorded video playback window."""
+        provider = self.get_active_provider(provider_name)
+        if hasattr(provider, "summarize_playback_stream"):
+            return provider.summarize_playback_stream(
+                channel_id=channel_id,
+                start_time=start_time,
+                end_time=end_time,
+                duration_seconds=duration_seconds,
+                rtsp_url=rtsp_url
+            )
+        target_url = rtsp_url or self.build_playback_url(channel=channel_id or "1", stream="1", start_time=start_time, end_time=end_time)
+        return provider.summarize_stream(channel_id=channel_id, rtsp_url=target_url, duration_seconds=duration_seconds)
+
 
     # ── OpenAPI Operations ───────────────────────────────────────────────────
 

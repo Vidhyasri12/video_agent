@@ -1,3 +1,4 @@
+
 import os
 from pydantic_settings import BaseSettings
 from typing import Optional, Dict, Any
@@ -49,7 +50,7 @@ class Settings(BaseSettings):
     VIGI_VMS_PORT: int = 8554
     VIGI_VMS_USERNAME: str = "admin"
     VIGI_VMS_PASSWORD: str = "Gt@102020"
-    VIGI_VMS_RTSP_URL: str = "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1"
+    VIGI_VMS_RTSP_URL: str = "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm"
     CLOUDFLARE_HOSTNAME: str = "cam-rtsp.goodwindco.in"
 
     RTSP_CONNECT_TIMEOUT: float = 5.0

@@ -72,6 +72,27 @@ class VigiCloudSummarizeRequest(BaseModel):
     device_id: Optional[str] = "vigi-cloud-cam-01"
     duration_seconds: Optional[int] = 15
 
+class VigiPlaybackUrlRequest(BaseModel):
+    channel_id: Optional[str] = "1"
+    stream_id: Optional[str] = "1"
+    start_time: str
+    end_time: str
+    host: Optional[str] = None
+    port: Optional[int] = 8554
+    username: Optional[str] = "admin"
+    password: Optional[str] = ""
+
+class VigiPlaybackSummarizeRequest(BaseModel):
+    channel_id: Optional[str] = "1"
+    start_time: str
+    end_time: str
+    duration_seconds: Optional[int] = 15
+    rtsp_url: Optional[str] = None
+    host: Optional[str] = None
+    username: Optional[str] = "admin"
+    password: Optional[str] = ""
+
+
 
 # ── Core Production Endpoints ──────────────────────────────────────────────
 
@@ -101,6 +122,69 @@ async def stream_vigi_live(
         vigi_service.generate_mjpeg_stream(channel_id=channel_id, rtsp_url=rtsp_url, provider_name=provider),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
+@router.post("/playback/url")
+async def get_vigi_playback_url(req: VigiPlaybackUrlRequest = Body(...)):
+    """Constructs and returns VIGI RTSP Replay URL with UTC timestamps."""
+    url = vigi_service.build_playback_url(
+        channel=req.channel_id or "1",
+        stream=req.stream_id or "1",
+        start_time=req.start_time,
+        end_time=req.end_time,
+        host=req.host,
+        port=req.port or 8554,
+        username=req.username or "",
+        password=req.password or ""
+    )
+    from app.providers.vigi_provider import format_vigi_utc_timestamp
+    return {
+        "status": "success",
+        "rtsp_url": url,
+        "channel_id": req.channel_id,
+        "stream_id": req.stream_id,
+        "start_time_utc": format_vigi_utc_timestamp(req.start_time),
+        "end_time_utc": format_vigi_utc_timestamp(req.end_time),
+        "formatted_pattern": "rtsp://<IP>/replay/<channel>/<stream>/avm?starttime=<START>&endtime=<END>"
+    }
+
+@router.get("/playback/stream")
+async def stream_vigi_playback(
+    channel_id: Optional[str] = Query("1"),
+    start_time: str = Query(""),
+    end_time: str = Query(""),
+    stream_id: str = Query("1"),
+    rtsp_url: Optional[str] = Query(None),
+    provider: Optional[str] = Query(None)
+):
+    """Streams MJPEG feed for historical video playback."""
+    return StreamingResponse(
+        vigi_service.generate_playback_mjpeg_stream(
+            channel_id=channel_id,
+            start_time=start_time,
+            end_time=end_time,
+            stream_id=stream_id,
+            rtsp_url=rtsp_url,
+            provider_name=provider
+        ),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
+@router.post("/playback/summarize")
+async def summarize_vigi_playback(req: VigiPlaybackSummarizeRequest = Body(...), provider: Optional[str] = Query(None)):
+    """Runs AI summarization on historical playback stream."""
+    try:
+        res = vigi_service.summarize_playback_stream(
+            channel_id=req.channel_id,
+            start_time=req.start_time,
+            end_time=req.end_time,
+            duration_seconds=req.duration_seconds or 15,
+            rtsp_url=req.rtsp_url,
+            provider_name=provider
+        )
+        return {"status": "success", "summary": res}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Playback AI Summarization error: {str(e)}")
+
 
 from app.services.stream_hub import stream_hub
 from fastapi.responses import Response

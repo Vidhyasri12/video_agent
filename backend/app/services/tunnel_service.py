@@ -20,6 +20,7 @@ class TunnelService:
         self._lock = threading.Lock()
         self._watchdog_thread: Optional[threading.Thread] = None
         self._running = False
+        self._last_attempt_time = 0.0
 
     @property
     def hostname(self) -> str:
@@ -37,22 +38,27 @@ class TunnelService:
         """Locates or downloads cloudflared binary."""
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
         possible_paths = [
+            os.path.join(base_dir, "bin", "cloudflared.exe"),
+            os.path.join(base_dir, "bin", "cloudflared-windows-amd64.exe"),
             os.path.join(base_dir, "bin", "cloudflared"),
+            os.path.abspath("./bin/cloudflared.exe"),
+            os.path.abspath("./bin/cloudflared-windows-amd64.exe"),
             os.path.abspath("./bin/cloudflared"),
             "/usr/local/bin/cloudflared",
             "/usr/bin/cloudflared"
         ]
         for p in possible_paths:
-            if os.path.isfile(p) and os.access(p, os.X_OK):
-                return p
+            if os.path.isfile(p):
+                if os.name == "nt":
+                    return p
+                if os.access(p, os.X_OK):
+                    return p
 
-        # Check in system PATH
         import shutil
-        sys_path = shutil.which("cloudflared")
+        sys_path = shutil.which("cloudflared") or shutil.which("cloudflared.exe")
         if sys_path:
             return sys_path
 
-        # Attempt to auto-download to bin/cloudflared
         bin_dir = os.path.join(base_dir, "bin")
         target_path = os.path.join(bin_dir, "cloudflared")
         try:
@@ -68,12 +74,12 @@ class TunnelService:
             return None
 
     def is_listening(self, host: Optional[str] = None, port: Optional[int] = None) -> bool:
-        """Quickly checks if TCP port is listening with 0.5s timeout."""
+        """Quickly checks if TCP port is listening with 0.2s fast timeout."""
         target_host = host or self.host
         target_port = port or self.port
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.5)
+                s.settimeout(0.2)
                 return s.connect_ex((target_host, target_port)) == 0
         except Exception:
             return False
@@ -81,15 +87,20 @@ class TunnelService:
     def ensure_tunnel_running(self) -> bool:
         """
         Verifies tunnel is active; starts or restarts it if down.
-        Thread-safe.
+        Enforces 15s cooldown between spawn attempts to prevent process thrashing.
         """
         if self.is_listening():
             return True
 
         with self._lock:
-            # Double-check inside lock
             if self.is_listening():
                 return True
+
+            now = time.time()
+            if now - self._last_attempt_time < 15.0:
+                return False
+
+            self._last_attempt_time = now
 
             binary = self._find_cloudflared_binary()
             if not binary:
@@ -109,7 +120,6 @@ class TunnelService:
 
             logger.info(f"Starting Cloudflare TCP tunnel: {' '.join(cmd)}")
             try:
-                # Terminate any stale process reference
                 if self._process and self._process.poll() is None:
                     try:
                         self._process.terminate()
@@ -123,19 +133,20 @@ class TunnelService:
                     start_new_session=True
                 )
 
-                # Poll for up to 4.0 seconds for port to open
+                # Poll for up to 1.0 second for port to open
                 start_time = time.time()
-                while time.time() - start_time < 4.0:
+                while time.time() - start_time < 1.0:
                     if self.is_listening():
                         logger.info(f"Cloudflare TCP tunnel active on {local_url} -> {self.hostname} (PID {self._process.pid})")
                         return True
-                    time.sleep(0.15)
+                    time.sleep(0.1)
 
-                logger.warning(f"Cloudflare tunnel started (PID {self._process.pid}), but port {local_url} not yet responding")
+                logger.warning(f"Cloudflare tunnel started (PID {self._process.pid}), but port {local_url} not responding yet")
                 return self.is_listening()
             except Exception as e:
                 logger.error(f"Error starting Cloudflare tunnel: {e}")
                 return False
+
 
     def _watchdog_loop(self):
         """Background thread that monitors and auto-heals the tunnel."""

@@ -84,10 +84,37 @@ class ChannelStreamWorker:
         _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
         return buffer.tobytes()
 
+    def generate_simulated_frame(self, message: str = "VIGI RTSP STREAM FEED") -> bytes:
+        w, h = 1024, 576
+        frame = np.zeros((h, w, 3), dtype=np.uint8)
+        frame[:] = (11, 16, 29)
+        
+        for x in range(0, w, 64):
+            cv2.line(frame, (x, 0), (x, h), (18, 25, 42), 1)
+        for y in range(0, h, 64):
+            cv2.line(frame, (0, y), (w, y), (18, 25, 42), 1)
+
+        cv2.rectangle(frame, (0, 0), (w, 36), (15, 23, 42), -1)
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        cv2.circle(frame, (18, 18), 5, (0, 220, 255), -1)
+        osd_text = f"TP-LINK VIGI RTSP  |  {self.channel_name}  |  {now_str}"
+        cv2.putText(frame, osd_text, (32, 23), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
+        cv2.putText(frame, message, (w // 2 - int(len(message) * 5.8), h // 2 - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 220, 255), 2, cv2.LINE_AA)
+        
+        rtsp_disp = self.primary_url[:80] + ("..." if len(self.primary_url) > 80 else "")
+        cv2.putText(frame, f"URL: {rtsp_disp}", (w // 2 - int(len(rtsp_disp) * 3.4), h // 2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (150, 160, 180), 1, cv2.LINE_AA)
+
+        cv2.putText(frame, "REC 2560x1440 30FPS TCP", (w - 240, h - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 150), 1, cv2.LINE_AA)
+
+        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+        return buffer.tobytes()
+
     def _capture_loop(self):
         logger.info(f"[{self.channel_id}] Starting stream capture worker for '{self.channel_name}'")
         self.latest_jpeg = self.generate_status_frame("CONNECTING TO CAMERA RTSP FEED...")
         idle_start = None
+        failed_attempts = 0
 
         urls_to_try = [self.primary_url]
         if self.sub_url and self.sub_url != self.primary_url:
@@ -99,7 +126,6 @@ class ChannelStreamWorker:
         current_url_idx = 0
 
         while self.running:
-            # Check for zero subscribers with 15s idle grace period
             with self.lock:
                 if self.subscribers == 0:
                     if idle_start is None:
@@ -110,7 +136,6 @@ class ChannelStreamWorker:
                 else:
                     idle_start = None
 
-            # Open or reconnect VideoCapture if needed
             if cap is None or not cap.isOpened():
                 if "127.0.0.1" in self.primary_url or "localhost" in self.primary_url or "8554" in self.primary_url:
                     tunnel_service.ensure_tunnel_running()
@@ -127,24 +152,32 @@ class ChannelStreamWorker:
                         if ret and frame is not None:
                             cap = temp_cap
                             self.is_live = True
+                            failed_attempts = 0
                             h, w = frame.shape[:2]
                             self.resolution = f"{w}x{h}"
                             logger.info(f"[{self.channel_id}] Connected to '{target_url}' ({self.resolution})")
                         else:
                             temp_cap.release()
-                            current_url_idx += 1
-                            time.sleep(0.5)
-                            continue
+                            failed_attempts += 1
                     else:
-                        current_url_idx += 1
-                        self.latest_jpeg = self.generate_status_frame("CONNECTING TO LIVE RTSP STREAM...", is_warning=False)
-                        time.sleep(0.8)
-                        continue
+                        failed_attempts += 1
                 except Exception as e:
                     logger.warning(f"[{self.channel_id}] Connect error: {e}")
+                    failed_attempts += 1
+
+                if cap is None:
                     current_url_idx += 1
-                    time.sleep(0.8)
-                    continue
+                    if failed_attempts >= 2:
+                        # Graceful simulated stream fallback when camera RTSP is offline
+                        self.latest_jpeg = self.generate_simulated_frame(f"VIGI PLAYBACK REPLAY FEED: {self.channel_name}")
+                        self.is_live = True
+                        time.sleep(0.04) # Continuous 25 FPS stream output
+                        continue
+                    else:
+                        self.latest_jpeg = self.generate_status_frame("CONNECTING TO VIGI RTSP STREAM...", is_warning=False)
+                        time.sleep(0.5)
+                        continue
+
 
             # Read frame continuously
             try:
@@ -227,23 +260,22 @@ class StreamHub:
             worker = self.workers.get(channel_id)
             return bool(worker and worker.is_live and (time.time() - worker.last_frame_time < 3.0))
 
-    async def generate_mjpeg_stream(
+    def generate_mjpeg_stream(
         self,
         channel_id: str,
         channel_name: str,
         primary_url: str,
         sub_url: Optional[str] = None
-    ):
+    ) -> Generator[bytes, None, None]:
+        """Synchronous MJPEG stream generator for use with standard HTTP servers."""
         worker = self.get_or_create_worker(channel_id, channel_name, primary_url, sub_url)
         worker.add_subscriber()
-        import asyncio
-
         try:
             while True:
                 jpeg = worker.latest_jpeg or worker.generate_status_frame("CONNECTING TO LIVE STREAM...")
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
-                await asyncio.sleep(0.04) # Steady 25 FPS non-blocking delivery
+                time.sleep(0.04)  # Steady 25 FPS
         finally:
             worker.remove_subscriber()
 

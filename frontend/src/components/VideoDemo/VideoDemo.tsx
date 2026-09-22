@@ -50,7 +50,7 @@ interface VideoDemoProps {
 const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
   {
     channel_id: "vigi-cam-01",
-    name: "Channel 1 - Loading Area (VIGI C540-W)",
+    name: "Channel 1 - Loading Area",
     location: "Cargo Dock / Staging Bay A",
     model: "VIGI C540-W (4MP Outdoor Pan Tilt)",
     ip_address: "127.0.0.1 (Cloudflare)",
@@ -58,7 +58,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm",
     sample_video: "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4",
     video_url: "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
   },
@@ -72,7 +72,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch2/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/2/1/avm",
     sample_video: "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4",
     video_url: "/static/videos/539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
   },
@@ -86,7 +86,7 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch3/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/3/1/avm",
     sample_video: "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4",
     video_url: "/static/videos/4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
   },
@@ -100,53 +100,52 @@ const DEFAULT_VIGI_CHANNELS: VigiChannel[] = [
     status: "online",
     resolution: "2560x1440",
     fps: 25,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch4/stream1",
+    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/live/4/1/avm",
     sample_video: "69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4",
     video_url: "/static/videos/69427cf9-c0b1-49c9-ba39-8656f5ad59d8.mp4"
   },
-  {
-    channel_id: "vigi-cam-05",
-    name: "Channel 5 - Powder Coating Zone 2",
-    location: "Powder Coating Area Zone 2",
-    model: "VIGI C440-W UN (4MP)",
-    ip_address: "127.0.0.1 (Cloudflare)",
-    port: 8554,
-    status: "online",
-    resolution: "2560x1440",
-    fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch5/stream1",
-    sample_video: "2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4",
-    video_url: "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"
-  },
-  {
-    channel_id: "vigi-cam-06",
-    name: "Channel 6 - Front Entry Perimeter",
-    location: "Front Entry Perimeter Gate",
-    model: "VIGI C440-W UN (4MP)",
-    ip_address: "127.0.0.1 (Cloudflare)",
-    port: 8554,
-    status: "online",
-    resolution: "2560x1440",
-    fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch6/stream1",
-    sample_video: "4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4",
-    video_url: "/static/videos/4fa61ba2-a012-4202-8df5-92c89bd62f5f.mp4"
-  },
-  {
-    channel_id: "vigi-cam-07",
-    name: "Channel 7 - Cargo Bay 2",
-    location: "Loading Bay Area West",
-    model: "VIGI C540-W (4MP Outdoor Pan Tilt)",
-    ip_address: "127.0.0.1 (Cloudflare)",
-    port: 8554,
-    status: "online",
-    resolution: "2560x1440",
-    fps: 30,
-    rtsp_url: "rtsp://admin:Gt%40102020@127.0.0.1:8554/ch7/stream1",
-    sample_video: "539bcf9e-5029-4980-bb6c-506afa521ea1.mp4",
-    video_url: "/static/videos/539bcf9e-5029-4980-bb6c-506afa521ea1.mp4"
-  }
 ];
+
+
+
+const formatToDatetimeLocalValue = (input: string): string => {
+  if (!input) return "2026-08-28T04:30:00";
+  const s = input.trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(s)) {
+    return s.length === 16 ? `${s}:00` : s;
+  }
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(s)) {
+    const parts = s.split(" ");
+    return `${parts[0]}T${parts[1].length === 5 ? parts[1] + ":00" : parts[1]}`;
+  }
+  if (/^\d{2}-\d{2}-\d{4}[\sT]\d{2}:\d{2}(:\d{2})?$/.test(s)) {
+    const sep = s.includes("T") ? "T" : " ";
+    const [datePart, timePart] = s.split(sep);
+    const [dd, mm, yyyy] = datePart.split("-");
+    const t = timePart.length === 5 ? `${timePart}:00` : timePart;
+    return `${yyyy}-${mm}-${dd}T${t}`;
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}[\sT]\d{2}:\d{2}(:\d{2})?$/.test(s)) {
+    const sep = s.includes("T") ? "T" : " ";
+    const [datePart, timePart] = s.split(sep);
+    const [dd, mm, yyyy] = datePart.split("/");
+    const t = timePart.length === 5 ? `${timePart}:00` : timePart;
+    return `${yyyy}-${mm}-${dd}T${t}`;
+  }
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
+    }
+  } catch (e) {}
+  return "2026-08-28T04:30:00";
+};
 
 export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, setActiveTab: externalSetTab }) => {
   // Internal tab state fallback if not controlled by parent App
@@ -158,11 +157,172 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const [vigiChannels, setVigiChannels] = useState<VigiChannel[]>(DEFAULT_VIGI_CHANNELS);
   const [selectedVigiChannel, setSelectedVigiChannel] = useState<string | null>("vigi-cam-01");
   const [liveSubTab, setLiveSubTab] = useState<"live" | "playback">("live");
-  const [gridCount, setGridCount] = useState<1 | 4 | 7>(1);
+  const [gridCount, setGridCount] = useState<1 | 4>(1);
   const [streamRefreshKey, setStreamRefreshKey] = useState<number>(Date.now());
   const [cameraSearch, setCameraSearch] = useState<string>("");
   const [allSitesExpanded, setAllSitesExpanded] = useState<boolean>(true);
   const [defaultExpanded, setDefaultExpanded] = useState<boolean>(true);
+
+  // Settings & RTSP Connection States
+  const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm");
+  const [vigiHost, setVigiHost] = useState<string>("127.0.0.1");
+  const [vigiPort, setVigiPort] = useState<number>(8554);
+  const [vigiUsername, setVigiUsername] = useState<string>("admin");
+  const [vigiPassword, setVigiPassword] = useState<string>("Gt@102020");
+
+  // Playback & Replay RTSP States
+  const [playbackChannel, setPlaybackChannel] = useState<string>("1");
+  const [playbackStreamId, setPlaybackStreamId] = useState<string>("1");
+
+  const [playbackStartTime, setPlaybackStartTime] = useState<string>("2026-08-28T04:30:00");
+  const [playbackEndTime, setPlaybackEndTime] = useState<string>("2026-08-28T05:00:00");
+  const [generatedReplayUrl, setGeneratedReplayUrl] = useState<string>("rtsp://admin:Gt%40102020@127.0.0.1:8554/replay/1/1/avm?starttime=20260828t043000z&endtime=20260828t050000z");
+  const [isPlayingPlayback, setIsPlayingPlayback] = useState<boolean>(false);
+  const [playbackStreamKey, setPlaybackStreamKey] = useState<number>(Date.now());
+  const [playbackSummary, setPlaybackSummary] = useState<VideoDescription | null>(null);
+  const [isSummarizingPlayback, setIsSummarizingPlayback] = useState<boolean>(false);
+
+  const handleFetchPlayback = async () => {
+    setIsPlayingPlayback(true);
+    setPlaybackStreamKey(Date.now());
+    try {
+      const res = await fetch(`${getBackendBase()}/api/v1/vigi/playback/url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel_id: playbackChannel,
+          stream_id: playbackStreamId,
+          start_time: playbackStartTime,
+          end_time: playbackEndTime,
+          host: vigiHost,
+          port: vigiPort,
+          username: vigiUsername,
+          password: vigiPassword
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedReplayUrl(data.rtsp_url);
+      }
+    } catch (e) {
+      console.warn("Playback URL generation error:", e);
+    }
+  };
+
+  const handleSummarizePlayback = async () => {
+    setIsSummarizingPlayback(true);
+    setPlaybackSummary(null);
+    try {
+      const res = await fetch(`${getBackendBase()}/api/v1/vigi/playback/summarize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel_id: playbackChannel,
+          start_time: playbackStartTime,
+          end_time: playbackEndTime,
+          duration_seconds: 15,
+          host: vigiHost,
+          username: vigiUsername,
+          password: vigiPassword
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPlaybackSummary(data.summary);
+      } else {
+        setPlaybackSummary(createFallbackDescription(`Playback Ch ${playbackChannel} (${playbackStartTime} to ${playbackEndTime})`));
+      }
+    } catch (e) {
+      setPlaybackSummary(createFallbackDescription(`Playback Ch ${playbackChannel} (${playbackStartTime} to ${playbackEndTime})`));
+    } finally {
+      setIsSummarizingPlayback(false);
+    }
+  };
+
+  const [useRawInput, setUseRawInput] = useState<boolean>(false);
+
+  useEffect(() => {
+    const formatUtc = (s: string) => {
+      if (!s) return "20260828t043000z";
+      let clean = s.trim();
+      if (clean.length === 16 && clean[8].toLowerCase() === "t" && clean[15].toLowerCase() === "z") {
+        return clean.toLowerCase();
+      }
+      if (/^\d{2}-\d{2}-\d{4}[\sT]\d{2}:\d{2}(:\d{2})?$/.test(clean)) {
+        const sep = clean.includes("T") ? "T" : " ";
+        const [dPart, tPart] = clean.split(sep);
+        const [dd, mm, yyyy] = dPart.split("-");
+        const tClean = tPart.replace(/:/g, "");
+        const tFull = tClean.length === 4 ? `${tClean}00` : tClean;
+        return `${yyyy}${mm}${dd}t${tFull}z`;
+      }
+      if (/^\d{2}\/\d{2}\/\d{4}[\sT]\d{2}:\d{2}(:\d{2})?$/.test(clean)) {
+        const sep = clean.includes("T") ? "T" : " ";
+        const [dPart, tPart] = clean.split(sep);
+        const [dd, mm, yyyy] = dPart.split("/");
+        const tClean = tPart.replace(/:/g, "");
+        const tFull = tClean.length === 4 ? `${tClean}00` : tClean;
+        return `${yyyy}${mm}${dd}t${tFull}z`;
+      }
+      try {
+        const d = new Date(clean);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getUTCFullYear();
+          const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const dd = String(d.getUTCDate()).padStart(2, "0");
+          const hh = String(d.getUTCHours()).padStart(2, "0");
+          const min = String(d.getUTCMinutes()).padStart(2, "0");
+          const ss = String(d.getUTCSeconds()).padStart(2, "0");
+          return `${yyyy}${mm}${dd}t${hh}${min}${ss}z`;
+        }
+      } catch (e) {}
+      return clean.replace(/[-:\s]/g, "").toLowerCase();
+    };
+
+    const st = formatUtc(playbackStartTime);
+    const et = formatUtc(playbackEndTime);
+    const host = vigiHost || "127.0.0.1";
+    const portStr = vigiPort && vigiPort !== 554 ? `:${vigiPort}` : (host === "127.0.0.1" || host === "localhost" ? ":8554" : "");
+    const user = encodeURIComponent(vigiUsername || "admin");
+    const pass = encodeURIComponent(vigiPassword || "Gt@102020");
+    const ch = playbackChannel.replace("vigi-cam-0", "").replace("vigi-cam-", "") || "1";
+
+    setGeneratedReplayUrl(`rtsp://${user}:${pass}@${host}${portStr}/replay/${ch}/${playbackStreamId}/avm?starttime=${st}&endtime=${et}`);
+  }, [playbackChannel, playbackStreamId, playbackStartTime, playbackEndTime, vigiHost, vigiPort, vigiUsername, vigiPassword]);
+
+  const applyPreset = (preset: "1h" | "today" | "yesterday" | "aug28" | "sep20") => {
+    const now = new Date();
+    let st = "";
+    let et = "";
+    if (preset === "1h") {
+      const oneHourAgo = new Date(now.getTime() - 3600 * 1000);
+      st = oneHourAgo.toISOString().slice(0, 19);
+      et = now.toISOString().slice(0, 19);
+    } else if (preset === "today") {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      st = startOfDay.toISOString().slice(0, 19);
+      et = now.toISOString().slice(0, 19);
+    } else if (preset === "yesterday") {
+      const yesterday = new Date(now.getTime() - 86400 * 1000);
+      const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
+      const endOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+      st = startOfYesterday.toISOString().slice(0, 19);
+      et = endOfYesterday.toISOString().slice(0, 19);
+    } else if (preset === "aug28") {
+      st = "2026-08-28T04:30:00";
+      et = "2026-08-28T05:00:00";
+    } else if (preset === "sep20") {
+      st = "2026-09-20T18:30:00";
+      et = "2026-09-21T18:29:59";
+    }
+    setPlaybackStartTime(st);
+    setPlaybackEndTime(et);
+    setIsPlayingPlayback(true);
+    setPlaybackStreamKey(Date.now());
+  };
+
+
+
 
   // Upload Video States & Internal Sub-Tabs (Summary vs Speak with ChatGPT)
   const [uploadSubTab, setUploadSubTab] = useState<"summary" | "chat">("summary");
@@ -175,12 +335,6 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
   const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadSummaryRef = useRef<HTMLDivElement>(null);
 
-  // Settings & RTSP Connection States
-  const [customRtspUrl, setCustomRtspUrl] = useState<string>("rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1");
-  const [vigiHost, setVigiHost] = useState<string>("127.0.0.1");
-  const [vigiPort, setVigiPort] = useState<number>(8554);
-  const [vigiUsername, setVigiUsername] = useState<string>("admin");
-  const [vigiPassword, setVigiPassword] = useState<string>("Gt@102020");
   const [streamMode, setStreamMode] = useState<"video" | "mjpeg">("mjpeg");
   const [vigiConnectStatus, setVigiConnectStatus] = useState<{ connected: boolean; message: string } | null>(null);
   const [isTestingVigi, setIsTestingVigi] = useState<boolean>(false);
@@ -586,77 +740,92 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
             
             {/* Mode Switcher & Grid Controls */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center space-x-2 bg-[#070a12] px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-bold text-emerald-400">
-                <Video className="w-4 h-4 text-emerald-400" />
-                <span>Live View Stream</span>
-              </div>
-
-              {/* Stream Mode Switcher */}
               <div className="flex bg-[#070a12] p-1 rounded-lg border border-slate-800 space-x-1">
                 <button
-                  onClick={() => setStreamMode("mjpeg")}
+                  onClick={() => setLiveSubTab("live")}
                   className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer ${
-                    streamMode === "mjpeg"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    liveSubTab === "live"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <Radio className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>🔴 Live RTSP Stream</span>
+                  <span>🔴 Live Stream</span>
                 </button>
                 <button
-                  onClick={() => setStreamMode("video")}
+                  onClick={() => setLiveSubTab("playback")}
                   className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer ${
-                    streamMode === "video"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    liveSubTab === "playback"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  <Film className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Demo Video File</span>
+                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>📼 Recorded Playback</span>
                 </button>
               </div>
 
-              {/* Layout Switcher (1 Focus, 4 Quad, 7 Wall) */}
-              <div className="flex bg-[#070a12] p-1 rounded-lg border border-slate-800 space-x-1">
-                <button
-                  onClick={() => setGridCount(1)}
-                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
-                    gridCount === 1 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
-                  }`}
-                  title="Single Focus Camera"
-                >
-                  1x1
-                </button>
-                <button
-                  onClick={() => setGridCount(4)}
-                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
-                    gridCount === 4 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
-                  }`}
-                  title="Quad Camera Grid"
-                >
-                  2x2
-                </button>
-                <button
-                  onClick={() => setGridCount(7)}
-                  className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
-                    gridCount === 7 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
-                  }`}
-                  title="Full Surveillance Wall"
-                >
-                  Wall (7)
-                </button>
-              </div>
+              {liveSubTab === "live" && (
+                <>
+                  {/* Stream Mode Switcher */}
+                  <div className="flex bg-[#070a12] p-1 rounded-lg border border-slate-800 space-x-1">
+                    <button
+                      onClick={() => setStreamMode("mjpeg")}
+                      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer ${
+                        streamMode === "mjpeg"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      <Radio className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Live RTSP</span>
+                    </button>
+                    <button
+                      onClick={() => setStreamMode("video")}
+                      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer ${
+                        streamMode === "video"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      <Film className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Demo File</span>
+                    </button>
+                  </div>
 
-              {/* Reconnect / Refresh button */}
-              <button
-                onClick={() => setStreamRefreshKey(Date.now())}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#070a12] hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 transition cursor-pointer"
-                title="Reconnect Live RTSP Stream"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Reconnect</span>
-              </button>
+                  {/* Layout Switcher (1 Focus, 4 Quad) */}
+                  <div className="flex bg-[#070a12] p-1 rounded-lg border border-slate-800 space-x-1">
+                    <button
+                      onClick={() => setGridCount(1)}
+                      className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
+                        gridCount === 1 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
+                      }`}
+                      title="Single Focus Camera"
+                    >
+                      1x1
+                    </button>
+                    <button
+                      onClick={() => setGridCount(4)}
+                      className={`px-2.5 py-1 rounded text-xs font-mono font-bold transition cursor-pointer ${
+                        gridCount === 4 ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"
+                      }`}
+                      title="Quad Camera Grid — All 4 Live Channels"
+                    >
+                      2x2 (All 4)
+                    </button>
+                  </div>
+
+                  {/* Reconnect / Refresh button */}
+                  <button
+                    onClick={() => setStreamRefreshKey(Date.now())}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#070a12] hover:bg-slate-800 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 transition cursor-pointer"
+                    title="Reconnect Live RTSP Stream"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Reconnect</span>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Quick RTSP input */}
@@ -665,7 +834,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                 type="text"
                 value={customRtspUrl}
                 onChange={(e) => setCustomRtspUrl(e.target.value)}
-                placeholder="rtsp://admin:Gt%40102020@127.0.0.1:8554/ch1/stream1"
+                placeholder="rtsp://admin:Gt%40102020@127.0.0.1:8554/live/1/1/avm"
                 className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50"
               />
               <button
@@ -679,168 +848,131 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
 
           </div>
 
-          {/* Main 2-Column Section: Left Channel Roster + Right Video Wall */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* ==================== SUB-TAB 1: LIVE STREAM VIEW ==================== */}
+          {liveSubTab === "live" && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
-            {/* Left Column: VIGI Camera Roster */}
-            <div className="lg:col-span-1 bg-[#090d16] border border-slate-800/80 rounded-2xl p-3.5 space-y-4 shadow-xl font-sans">
-              
-              {/* Search Camera */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <div className="flex items-center space-x-1">
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-bold">Cameras ({vigiChannels.length})</span>
-                  </div>
-                  <Search className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search camera..."
-                    value={cameraSearch}
-                    onChange={(e) => setCameraSearch(e.target.value)}
-                    className="w-full bg-[#0d1322] border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
-                  />
-                </div>
-              </div>
-
-              {/* Camera Tree */}
-              <div className="space-y-1 pt-1 text-xs max-h-[540px] overflow-y-auto pr-1">
-                <div>
-                  <button
-                    onClick={() => setAllSitesExpanded(!allSitesExpanded)}
-                    className="w-full text-left py-1 text-slate-300 hover:text-white font-medium flex items-center justify-between group"
-                  >
-                    <span className="flex items-center space-x-1.5">
-                      {allSitesExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      )}
-                      <span className="font-bold">Cloudflare Site ({vigiChannels.length})</span>
-                    </span>
-                    <Radio className="w-3.5 h-3.5 text-emerald-400 opacity-80" />
-                  </button>
-
-                  {allSitesExpanded && (
-                    <div className="pl-4 space-y-1">
-                      <button
-                        onClick={() => setDefaultExpanded(!defaultExpanded)}
-                        className="w-full text-left py-1 text-slate-400 hover:text-slate-200 font-medium flex items-center justify-between"
-                      >
-                        <span className="flex items-center space-x-1.5">
-                          {defaultExpanded ? (
-                            <ChevronDown className="w-3 h-3 text-slate-400" />
-                          ) : (
-                            <ChevronRight className="w-3 h-3 text-slate-400" />
-                          )}
-                          <span>NVR Hub ({filteredChannels.length})</span>
-                        </span>
-                      </button>
-
-                      {defaultExpanded && (
-                        <div className="pl-3 space-y-1 pt-0.5">
-                          {filteredChannels.map((channel) => {
-                            const isSelected = selectedVigiChannel === channel.channel_id;
-                            return (
-                              <button
-                                key={channel.channel_id}
-                                onClick={() => {
-                                  setSelectedVigiChannel(channel.channel_id);
-                                  if (channel.rtsp_url) {
-                                    setCustomRtspUrl(channel.rtsp_url);
-                                  }
-                                  setStreamRefreshKey(Date.now());
-                                }}
-                                className={`w-full text-left p-2 rounded-xl transition flex flex-col space-y-0.5 cursor-pointer border ${
-                                  isSelected
-                                    ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-md shadow-emerald-500/10"
-                                    : "bg-[#0b101e] border-slate-800/80 text-slate-300 hover:border-slate-700"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-1.5 truncate">
-                                    <span className={`w-2 h-2 rounded-full ${channel.status === "online" ? "bg-emerald-400 animate-pulse" : "bg-emerald-500/60"}`} />
-                                    <span className="font-bold text-xs truncate text-white">{channel.name}</span>
-                                  </div>
-                                </div>
-                                <div className="text-[10px] text-slate-400 flex items-center justify-between pl-3.5">
-                                  <span className="truncate max-w-[130px]">{channel.model}</span>
-                                  <span className="font-mono text-[9px] text-slate-500">{channel.ip_address}</span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Deselect Camera Button */}
-              <button
-                onClick={() => setSelectedVigiChannel(null)}
-                className="w-full py-2 bg-[#070a12] hover:bg-slate-800 text-slate-400 text-xs font-bold rounded-xl border border-slate-800 transition flex items-center justify-center space-x-1.5 cursor-pointer"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Deselect / Reset Focus</span>
-              </button>
-
-            </div>
-
-            {/* Right Column: High-Tech Surveillance Video Grid */}
-            <div className="lg:col-span-3 space-y-4">
-              
-              {/* Surveillance Grid Container */}
-              <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-3 shadow-2xl relative min-h-[500px]">
+              {/* Left Column: VIGI Camera Roster */}
+              <div className="lg:col-span-1 bg-[#090d16] border border-slate-800/80 rounded-2xl p-3.5 space-y-4 shadow-xl font-sans">
                 
-                {/* 1x1 Single Focus Layout */}
-                {gridCount === 1 && (
-                  <div className="relative bg-black rounded-xl overflow-hidden border border-emerald-500/50 shadow-xl group aspect-video">
-                    {streamMode === "mjpeg" ? (
-                      <img
-                        key={`single-${activeChannelObj?.channel_id || "vigi-cam-01"}-${streamRefreshKey}`}
-                        src={`${getBackendBase()}/api/v1/vigi/stream?channel_id=${encodeURIComponent(
-                          activeChannelObj?.channel_id || "vigi-cam-01"
-                        )}&t=${streamRefreshKey}`}
-                        alt={activeChannelObj ? activeChannelObj.name : "Live Stream"}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <video
-                        src={`${getBackendBase()}${activeChannelObj?.video_url || "/static/videos/2d0394f7-35f0-4843-ad58-1f44dbada43e.mp4"}`}
-                        autoPlay
-                        loop
-                        muted
-                        controls
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-
-                    <div className="absolute top-2 left-2 bg-black/75 px-2.5 py-1 rounded-lg border border-slate-700/80 text-[11px] font-mono font-bold text-emerald-400 flex items-center space-x-2 backdrop-blur-sm pointer-events-none">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span>{activeChannelObj ? activeChannelObj.name : "VIGI Camera"}</span>
-                      <span className="text-slate-500">|</span>
-                      <span className="text-slate-300 font-normal">{activeChannelObj?.model || "VIGI 4MP"}</span>
+                {/* Search Camera */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-300">
+                    <div className="flex items-center space-x-1">
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold">Cameras ({vigiChannels.length})</span>
                     </div>
-
-                    <div className="absolute bottom-2 right-2 bg-black/75 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 border border-slate-800">
-                      2560x1440 @ 30FPS · Cloudflare Tunnel
-                    </div>
+                    <Search className="w-3.5 h-3.5 text-slate-400" />
                   </div>
-                )}
 
-                {/* 2x2 Quad Grid Layout */}
-                {gridCount === 4 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Main Focused Channel (Tile 1) */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search camera..."
+                      value={cameraSearch}
+                      onChange={(e) => setCameraSearch(e.target.value)}
+                      className="w-full bg-[#0d1322] border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Camera Tree */}
+                <div className="space-y-1 pt-1 text-xs max-h-[540px] overflow-y-auto pr-1">
+                  <div>
+                    <button
+                      onClick={() => setAllSitesExpanded(!allSitesExpanded)}
+                      className="w-full text-left py-1 text-slate-300 hover:text-white font-medium flex items-center justify-between group"
+                    >
+                      <span className="flex items-center space-x-1.5">
+                        {allSitesExpanded ? (
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                        <span className="font-bold">Cloudflare Site ({vigiChannels.length})</span>
+                      </span>
+                      <Radio className="w-3.5 h-3.5 text-emerald-400 opacity-80" />
+                    </button>
+
+                    {allSitesExpanded && (
+                      <div className="pl-4 space-y-1">
+                        <button
+                          onClick={() => setDefaultExpanded(!defaultExpanded)}
+                          className="w-full text-left py-1 text-slate-400 hover:text-slate-200 font-medium flex items-center justify-between"
+                        >
+                          <span className="flex items-center space-x-1.5">
+                            {defaultExpanded ? (
+                              <ChevronDown className="w-3 h-3 text-slate-400" />
+                            ) : (
+                              <ChevronRight className="w-3 h-3 text-slate-400" />
+                            )}
+                            <span>NVR Hub ({filteredChannels.length})</span>
+                          </span>
+                        </button>
+
+                        {defaultExpanded && (
+                          <div className="pl-3 space-y-1 pt-0.5">
+                            {filteredChannels.map((channel) => {
+                              const isSelected = selectedVigiChannel === channel.channel_id;
+                              return (
+                                <button
+                                  key={channel.channel_id}
+                                  onClick={() => {
+                                    setSelectedVigiChannel(channel.channel_id);
+                                    if (channel.rtsp_url) {
+                                      setCustomRtspUrl(channel.rtsp_url);
+                                    }
+                                    setStreamRefreshKey(Date.now());
+                                  }}
+                                  className={`w-full text-left p-2 rounded-xl transition flex flex-col space-y-0.5 cursor-pointer border ${
+                                    isSelected
+                                      ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-md shadow-emerald-500/10"
+                                      : "bg-[#0b101e] border-slate-800/80 text-slate-300 hover:border-slate-700"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-1.5 truncate">
+                                      <span className={`w-2 h-2 rounded-full ${channel.status === "online" ? "bg-emerald-400 animate-pulse" : "bg-emerald-500/60"}`} />
+                                      <span className="font-bold text-xs truncate text-white">{channel.name}</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 flex items-center justify-between pl-3.5">
+                                    <span className="truncate max-w-[130px]">{channel.model}</span>
+                                    <span className="font-mono text-[9px] text-slate-500">{channel.ip_address}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Deselect Camera Button */}
+                <button
+                  onClick={() => setSelectedVigiChannel(null)}
+                  className="w-full py-2 bg-[#070a12] hover:bg-slate-800 text-slate-400 text-xs font-bold rounded-xl border border-slate-800 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Deselect / Reset Focus</span>
+                </button>
+
+              </div>
+
+              {/* Right Column: High-Tech Surveillance Video Grid */}
+              <div className="lg:col-span-3 space-y-4">
+                
+                {/* Surveillance Grid Container */}
+                <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-3 shadow-2xl relative min-h-[500px]">
+                  
+                  {/* 1x1 Single Focus Layout */}
+                  {gridCount === 1 && (
                     <div className="relative bg-black rounded-xl overflow-hidden border border-emerald-500/50 shadow-xl group aspect-video">
                       {streamMode === "mjpeg" ? (
                         <img
-                          key={`quad-main-${activeChannelObj?.channel_id || "vigi-cam-01"}-${streamRefreshKey}`}
+                          key={`single-${activeChannelObj?.channel_id || "vigi-cam-01"}-${streamRefreshKey}`}
                           src={`${getBackendBase()}/api/v1/vigi/stream?channel_id=${encodeURIComponent(
                             activeChannelObj?.channel_id || "vigi-cam-01"
                           )}&t=${streamRefreshKey}`}
@@ -861,147 +993,433 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
                       <div className="absolute top-2 left-2 bg-black/75 px-2.5 py-1 rounded-lg border border-slate-700/80 text-[11px] font-mono font-bold text-emerald-400 flex items-center space-x-2 backdrop-blur-sm pointer-events-none">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                         <span>{activeChannelObj ? activeChannelObj.name : "VIGI Camera"}</span>
+                        <span className="text-slate-500">|</span>
+                        <span className="text-slate-300 font-normal">{activeChannelObj?.model || "VIGI 4MP"}</span>
                       </div>
 
                       <div className="absolute bottom-2 right-2 bg-black/75 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400 border border-slate-800">
-                        2560x1440
+                        2560x1440 @ 30FPS · Cloudflare Tunnel
                       </div>
                     </div>
+                  )}
 
-                    {/* Other 3 Channels in Quad View */}
-                    {vigiChannels
-                      .filter((chan) => chan.channel_id !== (activeChannelObj?.channel_id || "vigi-cam-01"))
-                      .slice(0, 3)
-                      .map((chan) => (
-                      <div
-                        key={chan.channel_id}
-                        onClick={() => {
-                          setSelectedVigiChannel(chan.channel_id);
-                          if (chan.rtsp_url) setCustomRtspUrl(chan.rtsp_url);
-                          setStreamRefreshKey(Date.now());
-                        }}
-                        className="relative bg-[#04060c] rounded-xl overflow-hidden border border-slate-800 hover:border-emerald-500/60 cursor-pointer aspect-video group transition shadow-md"
-                      >
-                        {streamMode === "mjpeg" ? (
-                          <img
-                            key={`tile-${chan.channel_id}-${streamRefreshKey}`}
-                            src={`${getBackendBase()}/api/v1/vigi/snapshot?channel_id=${encodeURIComponent(chan.channel_id)}&t=${streamRefreshKey}`}
-                            alt={chan.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <video
-                            src={`${getBackendBase()}${chan.video_url}`}
-                            autoPlay
-                            loop
-                            muted
-                            className="w-full h-full object-cover"
-                          />
-                        )}
+                  {/* 2x2 Quad Grid Layout — All 4 channels live */}
+                  {gridCount === 4 && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {vigiChannels.slice(0, 4).map((chan) => {
+                        const isSelected = selectedVigiChannel === chan.channel_id;
+                        return (
+                          <div
+                            key={chan.channel_id}
+                            onClick={() => {
+                              setSelectedVigiChannel(chan.channel_id);
+                              if (chan.rtsp_url) setCustomRtspUrl(chan.rtsp_url);
+                              setStreamRefreshKey(Date.now());
+                            }}
+                            className={`relative bg-black rounded-xl overflow-hidden border transition cursor-pointer aspect-video group shadow-md ${
+                              isSelected
+                                ? "border-emerald-500 shadow-lg shadow-emerald-500/20"
+                                : "border-slate-800 hover:border-emerald-500/60"
+                            }`}
+                          >
+                            {streamMode === "mjpeg" ? (
+                              <img
+                                key={`quad-${chan.channel_id}-${streamRefreshKey}`}
+                                src={`${getBackendBase()}/api/v1/vigi/stream?channel_id=${encodeURIComponent(chan.channel_id)}&t=${streamRefreshKey}`}
+                                alt={chan.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <video
+                                src={`${getBackendBase()}${chan.video_url}`}
+                                autoPlay
+                                loop
+                                muted
+                                className="w-full h-full object-cover"
+                              />
+                            )}
 
-                        <div className="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-slate-200 border border-slate-800 flex items-center space-x-1 backdrop-blur-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>{chan.name}</span>
-                        </div>
-                        <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                            <div className="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border flex items-center space-x-1.5 backdrop-blur-sm pointer-events-none"
+                              style={{ borderColor: isSelected ? 'rgba(52,211,153,0.5)' : 'rgba(51,65,85,0.8)' }}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-emerald-400 animate-ping' : 'bg-emerald-400'}`} />
+                              <span className={isSelected ? 'text-emerald-300' : 'text-slate-200'}>{chan.name}</span>
+                            </div>
 
-                {/* Wall View (All 7 Cameras Grid) */}
-                {gridCount === 7 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {vigiChannels.map((chan) => {
-                      const isSelected = selectedVigiChannel === chan.channel_id;
-                      return (
-                        <div
-                          key={chan.channel_id}
-                          onClick={() => {
-                            setSelectedVigiChannel(chan.channel_id);
-                            if (chan.rtsp_url) setCustomRtspUrl(chan.rtsp_url);
-                            setStreamRefreshKey(Date.now());
-                          }}
-                          className={`relative bg-[#04060c] rounded-xl overflow-hidden border transition cursor-pointer aspect-video group ${
-                            isSelected ? "border-emerald-500 shadow-lg shadow-emerald-500/20" : "border-slate-800 hover:border-slate-700"
-                          }`}
-                        >
-                          {streamMode === "mjpeg" ? (
-                            <img
-                              key={`wall-${chan.channel_id}-${streamRefreshKey}`}
-                              src={`${getBackendBase()}/api/v1/vigi/${isSelected ? "stream" : "snapshot"}?channel_id=${encodeURIComponent(chan.channel_id)}&t=${streamRefreshKey}`}
-                              alt={chan.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <video
-                              src={`${getBackendBase()}${chan.video_url}`}
-                              autoPlay
-                              loop
-                              muted
-                              className="w-full h-full object-cover"
-                            />
-                          )}
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-emerald-300 pointer-events-none">
+                                FOCUS
+                              </div>
+                            )}
 
-                          <div className="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-slate-200 border border-slate-800 flex items-center space-x-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-emerald-400 animate-ping" : "bg-emerald-500"}`} />
-                            <span className="truncate max-w-[150px]">{chan.name}</span>
+                            <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-colors pointer-events-none" />
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  )}
+
+                </div>
+
+                {/* AI Summarize Live Stream Action */}
+                <div className="pt-1">
+                  <button
+                    onClick={handleSummarizeVideo}
+                    disabled={isSummarizing}
+                    className={`w-full py-4 text-white font-extrabold text-sm rounded-xl transition shadow-lg flex items-center justify-center space-x-2 cursor-pointer bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-emerald-600/20 ${
+                      isSummarizing ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {isSummarizing ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                        <span>Analyzing VIGI Live Stream with NVIDIA VSS AI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Star className="w-5 h-5 text-white" />
+                        <span>Summarize {activeChannelObj ? activeChannelObj.name : "Active VIGI Camera Stream"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Stream Analysis Result */}
+                {description && (
+                  <div ref={summaryRef} className="glass-panel p-5 rounded-2xl space-y-4 border border-emerald-500/40 bg-[#090d16]">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                      <h3 className="text-sm font-extrabold text-white flex items-center space-x-2">
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                        <span>{description.title}</span>
+                      </h3>
+                      <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                        {Math.round((description.confidence || 0.98) * 100)}% Verified
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#050811] p-3 rounded-xl border border-slate-800">
+                      {description.summary}
+                    </p>
+
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-bold text-slate-300">Chronological Event Highlights</h4>
+                      <div className="space-y-1">
+                        {(description.timeline || []).map((t, i) => (
+                          <div key={i} className="flex items-center space-x-2 text-xs text-slate-300 bg-[#050811] px-3 py-1.5 rounded-lg border border-slate-800">
+                            <span className="font-mono font-bold text-emerald-400">{t.time}</span>
+                            <span>{t.event}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
               </div>
 
-              {/* AI Summarize Live Stream Action */}
-              <div className="pt-1">
+            </div>
+          )}
+
+          {/* ==================== SUB-TAB 2: RECORDED PLAYBACK VIEW ==================== */}
+          {liveSubTab === "playback" && (
+            <div className="space-y-4 font-sans">
+              
+              {/* Playback Control Bar */}
+              <div className="bg-[#090d16] border border-slate-800 p-4 rounded-2xl space-y-4 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                    <Clock className="w-5 h-5 text-emerald-400" />
+                    <span>TP-Link VIGI RTSP Recorded Playback & Replay</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400 bg-[#070a12] px-2.5 py-1 rounded-full border border-slate-800">
+                    rtsp://&lt;IP&gt;/replay/&lt;channel&gt;/&lt;stream&gt;/avm?starttime=YYYYMMDDtHHMMSSz&amp;endtime=YYYYMMDDtHHMMSSz
+                  </span>
+                </div>
+
+                {/* Quick Presets Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-[#070a12] p-2 rounded-xl border border-slate-800 text-xs">
+                  <span className="text-slate-400 font-bold flex items-center space-x-1.5 pl-1">
+                    <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Quick Date & Time Presets:</span>
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => applyPreset("1h")}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md font-medium text-[11px] transition cursor-pointer border border-slate-700"
+                    >
+                      ⏱️ Last 1 Hour
+                    </button>
+                    <button
+                      onClick={() => applyPreset("today")}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md font-medium text-[11px] transition cursor-pointer border border-slate-700"
+                    >
+                      📅 Today
+                    </button>
+                    <button
+                      onClick={() => applyPreset("yesterday")}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md font-medium text-[11px] transition cursor-pointer border border-slate-700"
+                    >
+                      🗓️ Yesterday
+                    </button>
+                    <button
+                      onClick={() => applyPreset("sep20")}
+                      className="px-2.5 py-1 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md font-bold text-[11px] transition cursor-pointer border border-teal-500/40"
+                    >
+                      📼 Sep 20 - 21 (Replay Sample)
+                    </button>
+                    <button
+                      onClick={() => applyPreset("aug28")}
+                      className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-md font-bold text-[11px] transition cursor-pointer border border-emerald-500/40"
+                    >
+                      📼 Aug 28 (04:30 - 05:00 UTC)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                  {/* Channel selection */}
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-bold block">Camera / Channel</label>
+                    <select
+                      value={playbackChannel}
+                      onChange={(e) => {
+                        setPlaybackChannel(e.target.value);
+                        setIsPlayingPlayback(true);
+                        setPlaybackStreamKey(Date.now());
+                      }}
+                      className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-medium focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                    >
+                      <option value="1">Channel 1 - Loading Area (C540-W)</option>
+                      <option value="2">Channel 2 - Powder Coating Area (C440-W)</option>
+                      <option value="3">Channel 3 - Front Door (C440-W)</option>
+                      <option value="4">Channel 4 - NVR Central Hub (NVR2016H)</option>
+                    </select>
+                  </div>
+
+                  {/* Stream Type */}
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-bold block">Stream Type</label>
+                    <select
+                      value={playbackStreamId}
+                      onChange={(e) => {
+                        setPlaybackStreamId(e.target.value);
+                        setIsPlayingPlayback(true);
+                        setPlaybackStreamKey(Date.now());
+                      }}
+                      className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-medium focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                    >
+                      <option value="1">Main Stream (HD 2560x1440)</option>
+                      <option value="2">Sub Stream (SD Smooth)</option>
+                    </select>
+                  </div>
+
+                  {/* Start Time (Calendar & Time Dial) */}
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-bold flex items-center justify-between">
+                      <span>Start Date & Time</span>
+                      <button
+                        type="button"
+                        onClick={() => setUseRawInput(!useRawInput)}
+                        className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono underline cursor-pointer"
+                      >
+                        {useRawInput ? "✏️ Text Input" : "📅 Calendar Pick"}
+                      </button>
+                    </label>
+                    {useRawInput ? (
+                      <input
+                        type="text"
+                        value={playbackStartTime}
+                        onChange={(e) => {
+                          setPlaybackStartTime(e.target.value);
+                          setIsPlayingPlayback(true);
+                          setPlaybackStreamKey(Date.now());
+                        }}
+                        placeholder="2026-09-20 18:30:00"
+                        className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-2 text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50"
+                      />
+                    ) : (
+                      <input
+                        type="datetime-local"
+                        step="1"
+                        value={formatToDatetimeLocalValue(playbackStartTime)}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setPlaybackStartTime(e.target.value);
+                            setIsPlayingPlayback(true);
+                            setPlaybackStreamKey(Date.now());
+                          }
+                        }}
+                        className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-2 text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                      />
+                    )}
+                  </div>
+
+                  {/* End Time (Calendar & Time Dial) */}
+                  <div className="space-y-1">
+                    <label className="text-slate-300 font-bold flex items-center justify-between">
+                      <span>End Date & Time</span>
+                      <button
+                        type="button"
+                        onClick={() => setUseRawInput(!useRawInput)}
+                        className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono underline cursor-pointer"
+                      >
+                        {useRawInput ? "✏️ Text Input" : "⏱️ Time Dial Pick"}
+                      </button>
+                    </label>
+                    {useRawInput ? (
+                      <input
+                        type="text"
+                        value={playbackEndTime}
+                        onChange={(e) => {
+                          setPlaybackEndTime(e.target.value);
+                          setIsPlayingPlayback(true);
+                          setPlaybackStreamKey(Date.now());
+                        }}
+                        placeholder="2026-09-21 18:29:59"
+                        className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-2 text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50"
+                      />
+                    ) : (
+                      <input
+                        type="datetime-local"
+                        step="1"
+                        value={formatToDatetimeLocalValue(playbackEndTime)}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setPlaybackEndTime(e.target.value);
+                            setIsPlayingPlayback(true);
+                            setPlaybackStreamKey(Date.now());
+                          }
+                        }}
+                        className="w-full bg-[#070a12] border border-slate-800 rounded-lg px-3 py-2 text-emerald-300 font-mono focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                      />
+                    )}
+                  </div>
+                </div>
+
+
+                {/* Replay URL Preview */}
+                <div className="space-y-1 pt-1">
+                  <label className="text-[11px] font-bold text-slate-400 block">Constructed VIGI RTSP Replay URL</label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={generatedReplayUrl}
+                      className="w-full bg-[#050811] border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 selection:bg-emerald-500/30"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedReplayUrl);
+                      }}
+                      className="px-3 py-2 bg-[#070a12] hover:bg-slate-800 text-slate-300 font-bold text-xs rounded-lg transition border border-slate-800 shrink-0 cursor-pointer flex items-center space-x-1"
+                      title="Copy RTSP Replay URL"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Copy</span>
+                    </button>
+                    <button
+                      onClick={handleFetchPlayback}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition shrink-0 cursor-pointer flex items-center space-x-1.5 shadow-md shadow-emerald-600/20"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>Fetch Stream</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Video Player Display Container */}
+              <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-3 shadow-2xl relative min-h-[480px]">
+                <div className="relative bg-black rounded-xl overflow-hidden border border-emerald-500/40 shadow-xl aspect-video flex items-center justify-center">
+                  {isPlayingPlayback ? (
+                    <img
+                      key={`playback-${playbackChannel}-${playbackStreamKey}`}
+                      src={`${getBackendBase()}/api/v1/vigi/playback/stream?channel_id=${encodeURIComponent(playbackChannel)}&start_time=${encodeURIComponent(playbackStartTime)}&end_time=${encodeURIComponent(playbackEndTime)}&stream_id=${playbackStreamId}&t=${playbackStreamKey}`}
+                      alt="Recorded Playback Feed"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center p-8 space-y-3">
+                      <div className="p-4 rounded-full bg-emerald-500/10 border border-emerald-500/30 w-16 h-16 mx-auto flex items-center justify-center text-emerald-400">
+                        <Clock className="w-8 h-8" />
+                      </div>
+                      <h4 className="text-base font-extrabold text-white">VIGI Playback Stream Ready</h4>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        Select channel, start time, and end time above, then click <strong className="text-emerald-300">Fetch Stream</strong> to begin RTSP replay decoding.
+                      </p>
+                      <button
+                        onClick={handleFetchPlayback}
+                        className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 cursor-pointer inline-flex items-center space-x-2"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>Start Playback Stream</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {isPlayingPlayback && (
+                    <div className="absolute top-2 left-2 bg-black/80 px-3 py-1 rounded-lg border border-emerald-500/40 text-[11px] font-mono font-bold text-emerald-300 flex items-center space-x-2 backdrop-blur-sm">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>PLAYBACK: Channel {playbackChannel}</span>
+                      <span className="text-slate-500">|</span>
+                      <span className="text-slate-300">{playbackStartTime} → {playbackEndTime}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* AI Summarize Playback Window Action */}
+              <div>
                 <button
-                  onClick={handleSummarizeVideo}
-                  disabled={isSummarizing}
+                  onClick={handleSummarizePlayback}
+                  disabled={isSummarizingPlayback}
                   className={`w-full py-4 text-white font-extrabold text-sm rounded-xl transition shadow-lg flex items-center justify-center space-x-2 cursor-pointer bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 shadow-emerald-600/20 ${
-                    isSummarizing ? "opacity-70 cursor-not-allowed" : ""
+                    isSummarizingPlayback ? "opacity-70 cursor-not-allowed" : ""
                   }`}
                 >
-                  {isSummarizing ? (
+                  {isSummarizingPlayback ? (
                     <>
                       <RefreshCw className="w-5 h-5 animate-spin text-white" />
-                      <span>Analyzing VIGI Live Stream with NVIDIA VSS AI...</span>
+                      <span>Extracting Playback Keyframes & Summarizing with NVIDIA VSS AI...</span>
                     </>
                   ) : (
                     <>
                       <Star className="w-5 h-5 text-white" />
-                      <span>Summarize {activeChannelObj ? activeChannelObj.name : "Active VIGI Camera Stream"}</span>
+                      <span>AI Summarize Recorded Window (Ch {playbackChannel})</span>
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Stream Analysis Result */}
-              {description && (
-                <div ref={summaryRef} className="glass-panel p-5 rounded-2xl space-y-4 border border-emerald-500/40 bg-[#090d16]">
+              {/* Playback AI Summary Result Card */}
+              {playbackSummary && (
+                <div className="glass-panel p-5 rounded-2xl space-y-4 border border-emerald-500/40 bg-[#090d16] animate-fade-in">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                     <h3 className="text-sm font-extrabold text-white flex items-center space-x-2">
                       <Sparkles className="w-4 h-4 text-emerald-400" />
-                      <span>{description.title}</span>
+                      <span>{playbackSummary.title}</span>
                     </h3>
-                    <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/40">
-                      {Math.round((description.confidence || 0.98) * 100)}% Verified
+                    <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                      {Math.round((playbackSummary.confidence || 0.98) * 100)}% Verified
                     </span>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed font-sans bg-[#050811] p-3 rounded-xl border border-slate-800">
-                    {description.summary}
+                    {playbackSummary.summary}
                   </p>
 
                   <div className="space-y-1.5">
-                    <h4 className="text-xs font-bold text-slate-300">Chronological Event Highlights</h4>
+                    <h4 className="text-xs font-bold text-slate-300">Historical Keyframe Event Timeline</h4>
                     <div className="space-y-1">
-                      {(description.timeline || []).map((t, i) => (
+                      {(playbackSummary.timeline || []).map((t, i) => (
                         <div key={i} className="flex items-center space-x-2 text-xs text-slate-300 bg-[#050811] px-3 py-1.5 rounded-lg border border-slate-800">
                           <span className="font-mono font-bold text-emerald-400">{t.time}</span>
                           <span>{t.event}</span>
+                          {t.tag && (
+                            <span className="ml-auto text-[9px] font-mono bg-emerald-500/10 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                              {t.tag}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1010,8 +1428,7 @@ export const VideoDemo: React.FC<VideoDemoProps> = ({ activeTab: externalTab, se
               )}
 
             </div>
-
-          </div>
+          )}
 
         </div>
       )}
